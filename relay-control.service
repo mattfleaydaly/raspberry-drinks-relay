@@ -1,0 +1,12 @@
+[Unit]
+Description=Relay Control Web Application
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/python3 /home/pi/raspberry-drinks-relay/app.py
+WorkingDirectory=/home/pi/raspberry-drinks-relay
+Restart=always
+User=pi
+
+[Install]
+WantedBy=multi-user.target
