@@ -64,6 +64,10 @@ def toggle_relay(relay_name):
         save_relay_states(states)
     return jsonify({"state": relay.is_active})
 
+@app.route("/get-states")
+def get_states():
+    return jsonify(load_relay_states())
+
 @app.route("/settings")
 def settings():
     version = get_latest_version()
@@ -79,6 +83,16 @@ def update_repo():
 def run_setup():
     os.system("./setup.sh")
     return jsonify({"status": "Setup script executed!"})
+
+@app.route("/reboot", methods=["POST"])
+def reboot_system():
+    os.system("sudo reboot")
+    return jsonify({"status": "System is rebooting..."})
+
+@app.route("/shutdown", methods=["POST"])
+def shutdown_system():
+    os.system("sudo shutdown now")
+    return jsonify({"status": "System is shutting down..."})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
