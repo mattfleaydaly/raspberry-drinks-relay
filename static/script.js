@@ -105,8 +105,10 @@ function toggleRelay(relayName) {
         .catch((err) => console.error(`Error toggling relay ${relayName}:`, err));
 }
 
-// Enable drag scrolling on the container
+// Enable drag scrolling on both container and content elements
 document.addEventListener('DOMContentLoaded', () => {
     const container = document.querySelector('.container'); // Target the scrollable container
+    const content = document.querySelector('.content'); // Target the content for inner scrolling
     enableDragScroll(container);
+    enableDragScroll(content);
 });
