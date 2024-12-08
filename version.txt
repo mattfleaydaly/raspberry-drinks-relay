@@ -1,0 +1,2 @@
+v1.1.0 - Added setup button, improved templates for small screens, added version history support
+v1.0.0 - Initial release with dashboard, test mode, and settings
