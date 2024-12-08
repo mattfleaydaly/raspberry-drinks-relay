@@ -19,7 +19,7 @@ html, body {
 
 /* Page title styling */
 .page-title {
-    margin: 20px 0; /* Ensure spacing around the title */
+    margin-top: 20px; /* Ensure spacing around the title */
     font-size: 1.8rem; /* Adjust font size for visibility */
     color: #00d1b2;
     text-align: center; /* Center-align the title */
@@ -28,9 +28,11 @@ html, body {
 
 /* Content container styling */
 .content {
+    margin-top: 10px; /* Add spacing below the title */
     text-align: justify; /* Justify text for clean alignment */
     padding: 10px;
     line-height: 1.6; /* Improve readability */
+    overflow: auto; /* Ensure content is scrollable */
 }
 
 /* Ensure responsive font size and layout */
@@ -44,7 +46,7 @@ html, body {
     }
 }
 
-
+/* Drag cursor styling */
 body.active-drag {
     cursor: grabbing; /* Show grabbing cursor during drag */
 }
@@ -57,7 +59,7 @@ body.active-drag {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start; /* Align content to the top */
     padding: 10px;
     box-sizing: border-box;
 }
