@@ -23,6 +23,8 @@ def initialize_relay_states():
 
 # Load relay states from file
 def load_relay_states():
+    if not os.path.exists("relay_states.json"):
+        initialize_relay_states()
     with open("relay_states.json", "r") as f:
         return json.load(f)
 
@@ -43,11 +45,18 @@ def get_local_ip():
 
 # Read latest version from version.txt
 def get_latest_version():
+    if not os.path.exists("version.txt"):
+        with open("version.txt", "w") as f:
+            f.write("1.0.0\n")
     with open("version.txt", "r") as f:
         return f.readline().strip()
 
 # Load configuration from config.json
 def get_config():
+    if not os.path.exists("config.json"):
+        default_config = {"system_name": "Drink Machine Controller"}
+        with open("config.json", "w") as f:
+            json.dump(default_config, f)
     with open("config.json", "r") as f:
         return json.load(f)
 
@@ -80,6 +89,11 @@ def settings():
     version = get_latest_version()
     local_ip = get_local_ip()
     return render_template("settings.html", version=version, local_ip=local_ip)
+
+@app.route("/about")
+def about():
+    config = get_config()
+    return render_template("about.html", system_name=config["system_name"])
 
 @app.route("/update")
 def update_repo():

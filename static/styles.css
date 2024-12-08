@@ -17,6 +17,34 @@ html, body {
     user-select: none;
 }
 
+/* Page title styling */
+.page-title {
+    margin: 20px 0; /* Ensure spacing around the title */
+    font-size: 1.8rem; /* Adjust font size for visibility */
+    color: #00d1b2;
+    text-align: center; /* Center-align the title */
+    line-height: 1.2; /* Prevent overlapping lines */
+}
+
+/* Content container styling */
+.content {
+    text-align: justify; /* Justify text for clean alignment */
+    padding: 10px;
+    line-height: 1.6; /* Improve readability */
+}
+
+/* Ensure responsive font size and layout */
+@media (max-width: 480px) {
+    .page-title {
+        font-size: 1.5rem; /* Scale down title font size for small screens */
+    }
+
+    .content {
+        font-size: 0.9rem; /* Adjust text size for readability */
+    }
+}
+
+
 body.active-drag {
     cursor: grabbing; /* Show grabbing cursor during drag */
 }
