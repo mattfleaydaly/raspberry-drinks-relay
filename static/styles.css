@@ -1,58 +1,68 @@
 /* General body styling */
-body {
-    background-color: #1e1e1e;        /* Dark theme background */
-    color: white;                    /* Text color */
+html, body {
+    background-color: #1e1e1e; /* Dark theme background */
+    color: white; /* Text color */
     font-family: 'Arial', sans-serif; /* Font */
-    overflow: auto;                  /* Enable scrolling */
-    touch-action: pan-x pan-y;       /* Enable touch scrolling */
-    overscroll-behavior: none;       /* Prevent bounce effects */
-    margin: 0;                       /* Remove default margins */
-    height: 100%;                    /* Full viewport height */
-    -webkit-overflow-scrolling: touch; /* Momentum-based scrolling for iOS */
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    overflow: hidden; /* Prevent page from overflowing */
+    display: flex;
+    flex-direction: column;
+    cursor: grab; /* Show grab cursor */
+    -webkit-user-select: none; /* Disable text selection */
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
 }
 
-/* Disable text selection globally */
-body, button {
-    -webkit-user-select: none; /* Disable selection in WebKit browsers */
-    -moz-user-select: none;    /* Disable selection in Firefox */
-    -ms-user-select: none;     /* Disable selection in IE10+ */
-    user-select: none;         /* Disable selection in modern browsers */
+body.active-drag {
+    cursor: grabbing; /* Show grabbing cursor during drag */
 }
 
-/* Styling for containers */
+/* Container for page content */
 .container {
+    flex: 1; /* Allow container to fill available space */
+    overflow: auto; /* Enable scrolling inside the container */
+    -webkit-overflow-scrolling: touch; /* Momentum scrolling for iOS */
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    height: 100%;
     padding: 10px;
+    box-sizing: border-box;
 }
 
 /* Headings */
 h1 {
-    font-size: 1.8rem;           /* Large font size for headings */
-    margin-bottom: 20px;         /* Space below heading */
-    color: #00d1b2;             /* Highlighted color */
+    font-size: 1.8rem; /* Default heading size */
+    margin-bottom: 20px;
+    color: #00d1b2;
+    text-align: center;
+    max-width: 90%; /* Prevent overflow on small screens */
 }
 
-/* Grid layout for buttons */
+/* Responsive grid for buttons */
 .grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr); /* Two buttons per row */
-    gap: 10px;                             /* Space between buttons */
-    width: 100%;                           /* Full width */
-    max-width: 400px;                      /* Limit width on larger screens */
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); /* Responsive columns */
+    gap: 10px; /* Space between buttons */
+    width: 100%;
+    max-width: 500px; /* Constrain grid size on larger screens */
+    box-sizing: border-box;
 }
 
 /* Button styling */
 .btn-relay, .btn-action {
-    font-size: 1rem;             /* Button font size */
-    border: none;                /* No border */
-    border-radius: 8px;          /* Rounded corners */
-    height: 50px;                /* Button height */
-    margin: 5px;                 /* Space around buttons */
-    transition: transform 0.2s, background 0.3s; /* Smooth transitions */
+    font-size: 1rem;
+    border: none;
+    border-radius: 8px;
+    height: 50px;
+    margin: 5px;
+    text-align: center;
+    transition: transform 0.2s, background 0.3s;
+    max-width: 100%; /* Ensure buttons fit in grid */
 }
 
 /* Hover effect for buttons */
@@ -71,52 +81,49 @@ h1 {
     color: white;
 }
 
-/* Default button color for actions */
 .btn-action {
-    background: linear-gradient(45deg, #0078ff, #00d1b2); /* Blue-green gradient */
+    background: linear-gradient(45deg, #0078ff, #00d1b2); /* Blue gradient */
     color: white;
 }
 
 .btn-action:hover {
-    transform: translateY(-2px);
     background: linear-gradient(45deg, #005fcc, #008d8e); /* Darker gradient on hover */
 }
 
 /* Floating home button styling */
 .home-btn {
-    position: fixed;               /* Fixed position */
-    bottom: 20px;                  /* Bottom-right corner */
+    position: fixed; /* Fixed position */
+    bottom: 20px; /* Bottom-right corner */
     right: 20px;
     background: linear-gradient(45deg, #0078ff, #00d1b2); /* Gradient */
     color: white;
-    font-size: 1.5rem;             /* Large font size */
+    font-size: 1.5rem; /* Large font size */
     width: 60px;
     height: 60px;
-    border-radius: 50%;            /* Circular button */
+    border-radius: 50%; /* Circular button */
     border: none;
     display: flex;
-    justify-content: center;       /* Center content */
+    justify-content: center; /* Center content */
     align-items: center;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow */
     transition: transform 0.3s, box-shadow 0.3s; /* Smooth hover effects */
 }
 
-/* Hover effect for home button */
 .home-btn:hover {
-    transform: scale(1.1);         /* Slight enlargement */
+    transform: scale(1.1); /* Slight enlargement */
     box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15); /* Larger shadow */
 }
 
 /* Scrollbar customization */
 ::-webkit-scrollbar {
-    width: 8px;                    /* Narrow scrollbar */
+    width: 8px; /* Narrow scrollbar */
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #555;              /* Scrollbar thumb color */
-    border-radius: 4px;            /* Rounded scrollbar */
+    background: #555; /* Scrollbar thumb color */
+    border-radius: 4px; /* Rounded scrollbar */
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: #777;              /* Darker thumb on hover */
+    background: #777; /* Darker thumb on hover */
 }

@@ -9,11 +9,13 @@
 <body>
     <div class="container">
         <h1>Settings</h1>
-        <div><strong>Version:</strong> {{ version }}</div>
-        <div><strong>Local IP:</strong> {{ local_ip }}</div>
-        <button class="btn-action" onclick="controlSystem('reboot')">Reboot System</button>
-        <button class="btn-action" onclick="controlSystem('shutdown')">Shutdown System</button>
-        <button class="btn-action" onclick="checkForUpdates()">Check for Updates</button>
+        <div class="grid">
+            <div><strong>Version:</strong> {{ version }}</div>
+            <div><strong>Local IP:</strong> {{ local_ip }}</div>
+            <button class="btn-action" onclick="controlSystem('reboot')">Reboot System</button>
+            <button class="btn-action" onclick="controlSystem('shutdown')">Shutdown System</button>
+            <button class="btn-action" onclick="checkForUpdates()">Check for Updates</button>
+        </div>
     </div>
     <button class="home-btn" onclick="location.href='/'">
         &#8962;
