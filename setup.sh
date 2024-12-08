@@ -2,25 +2,32 @@
 
 echo "Updating system and installing dependencies..."
 sudo apt update && sudo apt upgrade -y
-sudo apt install -y python3 python3-pip git python3-tk x11-xserver-utils unclutter
-pip3 install Flask gpiozero PyQt5
+sudo apt install -y python3 python3-pip git chromium-browser x11-xserver-utils unclutter
 
 echo "Installing Python requirements..."
-pip3 install -r requirements.txt
+pip3 install Flask gpiozero
 
 echo "Setting up relay control service..."
 sudo cp relay-control.service /etc/systemd/system/relay-control.service
 sudo systemctl enable relay-control
 sudo systemctl start relay-control
 
-echo "Setting up GUI to auto-start on boot..."
+echo "Setting up Chromium to auto-start in kiosk mode..."
 mkdir -p ~/.config/autostart
-cat <<EOF > ~/.config/autostart/relay_gui.desktop
+cat <<EOF > ~/.config/autostart/chromium_kiosk.desktop
 [Desktop Entry]
 Type=Application
-Name=Relay GUI
-Exec=/usr/bin/python3 /home/pi/raspberry-drinks-relay/local_gui.py
+Name=Chromium Kiosk
+Exec=chromium-browser --kiosk --noerrdialogs --disable-infobars --disable-session-crashed-bubble --disable-features=TranslateUI http://localhost:5000
 X-GNOME-Autostart-enabled=true
 EOF
 
-echo "Setup complete! The GUI will auto-launch at boot."
+echo "Disabling screen blanking..."
+xset s off
+xset -dpms
+xset s noblank
+echo "@xset s off" >> /etc/xdg/lxsession/LXDE-pi/autostart
+echo "@xset -dpms" >> /etc/xdg/lxsession/LXDE-pi/autostart
+echo "@xset s noblank" >> /etc/xdg/lxsession/LXDE-pi/autostart
+
+echo "Setup complete! Chromium will display the GUI on boot."
