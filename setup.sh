@@ -18,7 +18,7 @@ cat <<EOF > ~/.config/autostart/chromium_kiosk.desktop
 [Desktop Entry]
 Type=Application
 Name=Chromium Kiosk
-Exec=chromium-browser --kiosk --noerrdialogs --disable-infobars --disable-session-crashed-bubble --disable-features=TranslateUI http://localhost:5000
+Exec=chromium-browser --kiosk --noerrdialogs --disable-infobars --disable-session-crashed-bubble --enable-features=OverlayScrollbar http://localhost:5000
 X-GNOME-Autostart-enabled=true
 EOF
 
@@ -30,4 +30,4 @@ echo "@xset s off" >> /etc/xdg/lxsession/LXDE-pi/autostart
 echo "@xset -dpms" >> /etc/xdg/lxsession/LXDE-pi/autostart
 echo "@xset s noblank" >> /etc/xdg/lxsession/LXDE-pi/autostart
 
-echo "Setup complete! Chromium will display the GUI on boot."
+echo "Setup complete! Chromium will display the GUI on boot with improved scrolling."

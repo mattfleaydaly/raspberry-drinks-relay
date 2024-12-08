@@ -1,10 +1,25 @@
+/* General body styling */
 body {
-    background-color: #1e1e1e;
-    color: white;
-    font-family: 'Arial', sans-serif;
-    overflow: auto;
+    background-color: #1e1e1e;        /* Dark theme background */
+    color: white;                    /* Text color */
+    font-family: 'Arial', sans-serif; /* Font */
+    overflow: auto;                  /* Enable scrolling */
+    touch-action: pan-x pan-y;       /* Enable touch scrolling */
+    overscroll-behavior: none;       /* Prevent bounce effects */
+    margin: 0;                       /* Remove default margins */
+    height: 100%;                    /* Full viewport height */
+    -webkit-overflow-scrolling: touch; /* Momentum-based scrolling for iOS */
 }
 
+/* Disable text selection globally */
+body, button {
+    -webkit-user-select: none; /* Disable selection in WebKit browsers */
+    -moz-user-select: none;    /* Disable selection in Firefox */
+    -ms-user-select: none;     /* Disable selection in IE10+ */
+    user-select: none;         /* Disable selection in modern browsers */
+}
+
+/* Styling for containers */
 .container {
     display: flex;
     flex-direction: column;
@@ -14,52 +29,94 @@ body {
     padding: 10px;
 }
 
+/* Headings */
 h1 {
-    font-size: 1.8rem;
-    margin-bottom: 20px;
-    color: #00d1b2;
+    font-size: 1.8rem;           /* Large font size for headings */
+    margin-bottom: 20px;         /* Space below heading */
+    color: #00d1b2;             /* Highlighted color */
 }
 
+/* Grid layout for buttons */
 .grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-    width: 100%;
-    max-width: 400px;
+    grid-template-columns: repeat(2, 1fr); /* Two buttons per row */
+    gap: 10px;                             /* Space between buttons */
+    width: 100%;                           /* Full width */
+    max-width: 400px;                      /* Limit width on larger screens */
 }
 
+/* Button styling */
 .btn-relay, .btn-action {
-    font-size: 1rem;
-    border: none;
-    border-radius: 8px;
-    height: 50px;
-    margin: 5px;
-    transition: transform 0.2s, background 0.3s;
+    font-size: 1rem;             /* Button font size */
+    border: none;                /* No border */
+    border-radius: 8px;          /* Rounded corners */
+    height: 50px;                /* Button height */
+    margin: 5px;                 /* Space around buttons */
+    transition: transform 0.2s, background 0.3s; /* Smooth transitions */
 }
 
+/* Hover effect for buttons */
 .btn-relay:hover, .btn-action:hover {
-    transform: translateY(-2px);
+    transform: translateY(-2px); /* Slight lift on hover */
 }
 
-.home-btn {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    background: linear-gradient(45deg, #0078ff, #00d1b2);
+/* Button colors for ON/OFF states */
+.btn-success {
+    background: linear-gradient(45deg, #56ab2f, #a8e063); /* Green gradient */
     color: white;
-    font-size: 1.5rem;
+}
+
+.btn-danger {
+    background: linear-gradient(45deg, #e53935, #ff6b6b); /* Red gradient */
+    color: white;
+}
+
+/* Default button color for actions */
+.btn-action {
+    background: linear-gradient(45deg, #0078ff, #00d1b2); /* Blue-green gradient */
+    color: white;
+}
+
+.btn-action:hover {
+    transform: translateY(-2px);
+    background: linear-gradient(45deg, #005fcc, #008d8e); /* Darker gradient on hover */
+}
+
+/* Floating home button styling */
+.home-btn {
+    position: fixed;               /* Fixed position */
+    bottom: 20px;                  /* Bottom-right corner */
+    right: 20px;
+    background: linear-gradient(45deg, #0078ff, #00d1b2); /* Gradient */
+    color: white;
+    font-size: 1.5rem;             /* Large font size */
     width: 60px;
     height: 60px;
-    border-radius: 50%;
+    border-radius: 50%;            /* Circular button */
     border: none;
     display: flex;
-    justify-content: center;
+    justify-content: center;       /* Center content */
     align-items: center;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    transition: transform 0.3s, box-shadow 0.3s;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+    transition: transform 0.3s, box-shadow 0.3s; /* Smooth hover effects */
 }
 
+/* Hover effect for home button */
 .home-btn:hover {
-    transform: scale(1.1);
-    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+    transform: scale(1.1);         /* Slight enlargement */
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15); /* Larger shadow */
+}
+
+/* Scrollbar customization */
+::-webkit-scrollbar {
+    width: 8px;                    /* Narrow scrollbar */
+}
+
+::-webkit-scrollbar-thumb {
+    background: #555;              /* Scrollbar thumb color */
+    border-radius: 4px;            /* Rounded scrollbar */
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #777;              /* Darker thumb on hover */
 }

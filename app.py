@@ -14,6 +14,13 @@ relay_pins = {
     "Relay 4": OutputDevice(20, active_high=False),
 }
 
+# Initialize relay states
+def initialize_relay_states():
+    states = {relay: False for relay in relay_pins.keys()}
+    save_relay_states(states)
+    for relay in relay_pins.values():
+        relay.off()
+
 # Load relay states from file
 def load_relay_states():
     with open("relay_states.json", "r") as f:
@@ -86,13 +93,16 @@ def run_setup():
 
 @app.route("/reboot", methods=["POST"])
 def reboot_system():
+    initialize_relay_states()
     os.system("sudo reboot")
     return jsonify({"status": "System is rebooting..."})
 
 @app.route("/shutdown", methods=["POST"])
 def shutdown_system():
+    initialize_relay_states()
     os.system("sudo shutdown now")
     return jsonify({"status": "System is shutting down..."})
 
 if __name__ == "__main__":
+    initialize_relay_states()  # Reset states on startup
     app.run(host="0.0.0.0", port=5000)

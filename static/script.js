@@ -19,3 +19,21 @@ function controlSystem(action) {
         .then(response => response.json())
         .then(data => alert(data.status));
 }
+
+// Check for updates
+function checkForUpdates() {
+    fetch('/update')
+        .then(response => response.json())
+        .then(data => alert(data.status));
+}
+
+// Toggle relay
+function toggleRelay(relayName) {
+    fetch(`/toggle/${relayName}`)
+        .then(response => response.json())
+        .then(data => {
+            const button = document.getElementById(relayName);
+            button.className = data.state ? 'btn-relay btn-success' : 'btn-relay btn-danger';
+            button.innerText = `${relayName} - ${data.state ? 'ON' : 'OFF'}`;
+        });
+}
