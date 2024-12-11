@@ -34,6 +34,8 @@ html, body {
     overflow: auto; /* Ensure content is scrollable */
     -webkit-overflow-scrolling: touch; /* Enable smooth scrolling on touch devices */
     flex: 1; /* Allow the content to grow */
+    display: block;
+    box-sizing: border-box;
 }
 
 /* Ensure responsive font size and layout */
@@ -52,10 +54,54 @@ body.active-drag {
     cursor: grabbing; /* Show grabbing cursor during drag */
 }
 
+/* Header styling */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+    background-color: #282c34; /* Slightly darker header background */
+    color: #00d1b2;
+    border-bottom: 2px solid #444;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.header h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: white;
+}
+
+.home-btn {
+    position: static; /* Place within the header */
+    margin: 0;
+    background: linear-gradient(45deg, #0078ff, #00d1b2); /* Gradient */
+    color: white;
+    font-size: 1.5rem; /* Large font size */
+    width: 50px;
+    height: 50px;
+    border-radius: 50%; /* Circular button */
+    border: none;
+    display: flex;
+    justify-content: center; /* Center content */
+    align-items: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+    transition: transform 0.3s, box-shadow 0.3s; /* Smooth hover effects */
+}
+
+.home-btn:hover {
+    transform: scale(1.1); /* Slight enlargement */
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15); /* Larger shadow */
+}
+
 /* Container for page content */
 .container {
     flex: 1; /* Allow container to fill available space */
-    overflow: hidden; /* Prevent container scrolling */
+    overflow: auto; /* Enable scrolling inside the container */
+    -webkit-overflow-scrolling: touch; /* Momentum scrolling for iOS */
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -126,30 +172,6 @@ input, textarea, select {
     -moz-user-select: text;
     -ms-user-select: text;
     user-select: text;
-}
-
-/* Floating home button styling */
-.home-btn {
-    position: fixed; /* Fixed position */
-    bottom: 20px; /* Bottom-right corner */
-    right: 20px;
-    background: linear-gradient(45deg, #0078ff, #00d1b2); /* Gradient */
-    color: white;
-    font-size: 1.5rem; /* Large font size */
-    width: 60px;
-    height: 60px;
-    border-radius: 50%; /* Circular button */
-    border: none;
-    display: flex;
-    justify-content: center; /* Center content */
-    align-items: center;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow */
-    transition: transform 0.3s, box-shadow 0.3s; /* Smooth hover effects */
-}
-
-.home-btn:hover {
-    transform: scale(1.1); /* Slight enlargement */
-    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15); /* Larger shadow */
 }
 
 /* Scrollbar customization */

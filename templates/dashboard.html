@@ -1,22 +1,12 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Dashboard</title>
-    <link rel="stylesheet" href="/static/styles.css">
-</head>
-<body>
-    <div class="container">
-        <h1>System Dashboard</h1>
-        <div class="grid">
-            <button class="btn-action" onclick="location.href='/test-mode'">Test Mode</button>
-            <button class="btn-action" onclick="location.href='/settings'">Settings</button>
-        </div>
-    </div>
-    <button class="home-btn" onclick="location.href='/'">
-        &#8962;
-    </button>
-    <script src="/static/script.js"></script>
-</body>
-</html>
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block header %}System Dashboard{% endblock %}
+
+{% block content %}
+<div class="grid">
+    <button class="btn-action" onclick="location.href='/test-mode'">Test Mode</button>
+    <button class="btn-action" onclick="location.href='/settings'">Settings</button>
+</div>
+{% endblock %}

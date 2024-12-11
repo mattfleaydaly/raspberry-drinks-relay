@@ -3,6 +3,9 @@ from gpiozero import OutputDevice
 import os
 import socket
 import json
+import time
+import random
+import threading
 
 app = Flask(__name__)
 
@@ -35,10 +38,12 @@ def save_relay_states(states):
 
 # Get local IP address
 def get_local_ip():
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.connect(("8.8.8.8", 80))
         ip = s.getsockname()[0]
+    except Exception:
+        ip = "NOT CONNECTED"
     finally:
         s.close()
     return ip
@@ -83,6 +88,28 @@ def toggle_relay(relay_name):
 @app.route("/get-states")
 def get_states():
     return jsonify(load_relay_states())
+
+@app.route("/time-test")
+def time_test():
+    for relay_name, relay in relay_pins.items():
+        relay.on()
+        time.sleep(1)
+        relay.off()
+    return jsonify({"status": "Time test completed."})
+
+@app.route("/self-test")
+def self_test():
+    def perform_self_test():
+        for _ in range(random.randint(5, 10)):  # Random number of sequences
+            selected_relays = random.sample(list(relay_pins.keys()), random.randint(1, len(relay_pins)))
+            for relay_name in selected_relays:
+                relay = relay_pins[relay_name]
+                relay.on()
+                time.sleep(random.uniform(0.1, 2.0))  # Random duration
+                relay.off()
+            time.sleep(random.uniform(0.2, 0.5))  # Pause between cycles
+    threading.Thread(target=perform_self_test).start()
+    return jsonify({"status": "Self-test initiated."})
 
 @app.route("/settings")
 def settings():

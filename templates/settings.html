@@ -1,26 +1,16 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Settings</title>
-    <link rel="stylesheet" href="/static/styles.css">
-</head>
-<body>
-    <div class="container">
-        <h1>Settings</h1>
-        <div class="grid">
-            <div><strong>Version:</strong> {{ version }}</div>
-            <div><strong>Local IP:</strong> {{ local_ip }}</div>
-            <button class="btn-action" onclick="controlSystem('reboot')">Reboot System</button>
-            <button class="btn-action" onclick="controlSystem('shutdown')">Shutdown System</button>
-            <button class="btn-action" onclick="checkForUpdates()">Check for Updates</button>
-            <button class="btn-action" onclick="location.href='/about'">About</button>
-        </div>
-    </div>
-    <button class="home-btn" onclick="location.href='/'">
-        &#8962;
-    </button>
-    <script src="/static/script.js"></script>
-</body>
-</html>
+{% extends "base.html" %}
+
+{% block title %}Settings{% endblock %}
+
+{% block header %}Settings{% endblock %}
+
+{% block content %}
+<div class="grid">
+    <div><strong>Version:</strong> {{ version }}</div>
+    <div><strong>Local IP:</strong> {{ local_ip }}</div>
+    <button class="btn-action" onclick="controlSystem('reboot')">Reboot System</button>
+    <button class="btn-action" onclick="controlSystem('shutdown')">Shutdown System</button>
+    <button class="btn-action" onclick="checkForUpdates()">Check for Updates</button>
+    <button class="btn-action" onclick="location.href='/about'">About</button>
+</div>
+{% endblock %}

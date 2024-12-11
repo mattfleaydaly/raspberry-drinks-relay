@@ -1,26 +1,20 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Test Mode</title>
-    <link rel="stylesheet" href="/static/styles.css">
-</head>
-<body>
-    <div class="container">
-        <h1>Test Mode</h1>
-        <div class="grid">
-            {% for relay_name, state in relays.items() %}
-            <button id="{{ relay_name }}" class="btn-relay {{ 'btn-success' if state else 'btn-danger' }}" 
-                    onclick="toggleRelay('{{ relay_name }}')">
-                {{ relay_name }} - {{ 'ON' if state else 'OFF' }}
-            </button>
-            {% endfor %}
-        </div>
-    </div>
-    <button class="home-btn" onclick="location.href='/'">
-        &#8962;
+{% extends "base.html" %}
+
+{% block title %}Test Mode{% endblock %}
+
+{% block header %}Test Mode{% endblock %}
+
+{% block content %}
+<div class="grid">
+    {% for relay_name, state in relays.items() %}
+    <button id="{{ relay_name }}" class="btn-relay {{ 'btn-success' if state else 'btn-danger' }}" 
+            onclick="toggleRelay('{{ relay_name }}')">
+        {{ relay_name }} - {{ 'ON' if state else 'OFF' }}
     </button>
-    <script src="/static/script.js"></script>
-</body>
-</html>
+    {% endfor %}
+</div>
+<div class="grid">
+    <button class="btn-action" onclick="timeTest()">Time Test</button>
+    <button class="btn-action" onclick="selfTest()">Self Test</button>
+</div>
+{% endblock %}
