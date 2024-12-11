@@ -1,62 +1,67 @@
 // Drag scrolling variables
 let isDragging = false;
-let startX, startY;
-let scrollLeft, scrollTop;
+let startX = 0;
+let startY = 0;
+let scrollStartLeft = 0;
+let scrollStartTop = 0;
 
 // Initialize drag scrolling
 function enableDragScroll(container) {
+    // Mouse events
     container.addEventListener('mousedown', (e) => {
         isDragging = true;
-        container.classList.add('active-drag'); // Add visual feedback
-        startX = e.pageX - container.offsetLeft; // Mouse X position
-        startY = e.pageY - container.offsetTop; // Mouse Y position
-        scrollLeft = container.scrollLeft; // Current scroll position
-        scrollTop = container.scrollTop;
+        container.classList.add('active-drag');
+        startX = e.clientX; // Capture initial X position
+        startY = e.clientY; // Capture initial Y position
+        scrollStartLeft = container.scrollLeft; // Current horizontal scroll
+        scrollStartTop = container.scrollTop;   // Current vertical scroll
     });
 
     container.addEventListener('mousemove', (e) => {
         if (!isDragging) return;
         e.preventDefault(); // Prevent text selection
-        const x = e.pageX - container.offsetLeft;
-        const y = e.pageY - container.offsetTop;
-        const walkX = x - startX; // Horizontal movement
-        const walkY = y - startY; // Vertical movement
-        container.scrollLeft = scrollLeft - walkX; // Apply horizontal scroll
-        container.scrollTop = scrollTop - walkY; // Apply vertical scroll
+        const dx = e.clientX - startX; // Horizontal movement
+        const dy = e.clientY - startY; // Vertical movement
+        container.scrollLeft = scrollStartLeft - dx;
+        container.scrollTop = scrollStartTop - dy;
     });
 
     container.addEventListener('mouseup', () => {
         isDragging = false;
-        container.classList.remove('active-drag'); // Remove visual feedback
+        container.classList.remove('active-drag');
     });
 
     container.addEventListener('mouseleave', () => {
-        isDragging = false;
-        container.classList.remove('active-drag'); // Ensure drag ends on leave
+        if (isDragging) {
+            isDragging = false;
+            container.classList.remove('active-drag');
+        }
     });
 
-    // Touch support
+    // Touch events
     container.addEventListener('touchstart', (e) => {
-        isDragging = true;
         const touch = e.touches[0];
-        startX = touch.pageX - container.offsetLeft;
-        startY = touch.pageY - container.offsetTop;
-        scrollLeft = container.scrollLeft;
-        scrollTop = container.scrollTop;
+        isDragging = true;
+        startX = touch.clientX;
+        startY = touch.clientY;
+        scrollStartLeft = container.scrollLeft;
+        scrollStartTop = container.scrollTop;
     });
 
     container.addEventListener('touchmove', (e) => {
         if (!isDragging) return;
         const touch = e.touches[0];
-        const x = touch.pageX - container.offsetLeft;
-        const y = touch.pageY - container.offsetTop;
-        const walkX = x - startX;
-        const walkY = y - startY;
-        container.scrollLeft = scrollLeft - walkX;
-        container.scrollTop = scrollTop - walkY;
+        const dx = touch.clientX - startX;
+        const dy = touch.clientY - startY;
+        container.scrollLeft = scrollStartLeft - dx;
+        container.scrollTop = scrollStartTop - dy;
     });
 
     container.addEventListener('touchend', () => {
+        isDragging = false;
+    });
+
+    container.addEventListener('touchcancel', () => {
         isDragging = false;
     });
 }
@@ -107,8 +112,6 @@ function toggleRelay(relayName) {
 
 // Enable drag scrolling on both container and content elements
 document.addEventListener('DOMContentLoaded', () => {
-    const container = document.querySelector('.container'); // Target the scrollable container
-    const content = document.querySelector('.content'); // Target the content for inner scrolling
-    enableDragScroll(container);
+    const content = document.querySelector('.content');     // Target the `.content` for scrolling
     enableDragScroll(content);
 });

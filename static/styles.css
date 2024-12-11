@@ -10,7 +10,6 @@ html, body {
     overflow: hidden; /* Prevent page from overflowing */
     display: flex;
     flex-direction: column;
-    cursor: grab; /* Show grab cursor */
     -webkit-user-select: none; /* Disable text selection */
     -moz-user-select: none;
     -ms-user-select: none;
@@ -33,8 +32,8 @@ html, body {
     padding: 10px;
     line-height: 1.6; /* Improve readability */
     overflow: auto; /* Ensure content is scrollable */
+    -webkit-overflow-scrolling: touch; /* Enable smooth scrolling on touch devices */
     flex: 1; /* Allow the content to grow */
-    display: block; /* Ensure the content spans the full width */
 }
 
 /* Ensure responsive font size and layout */
@@ -56,8 +55,7 @@ body.active-drag {
 /* Container for page content */
 .container {
     flex: 1; /* Allow container to fill available space */
-    overflow: auto; /* Enable scrolling inside the container */
-    -webkit-overflow-scrolling: touch; /* Momentum scrolling for iOS */
+    overflow: hidden; /* Prevent container scrolling */
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -120,6 +118,14 @@ h1 {
 
 .btn-action:hover {
     background: linear-gradient(45deg, #005fcc, #008d8e); /* Darker gradient on hover */
+}
+
+/* Ensure text selection works only on specific inputs or editable fields */
+input, textarea, select {
+    -webkit-user-select: text; /* Allow text selection */
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
 }
 
 /* Floating home button styling */
