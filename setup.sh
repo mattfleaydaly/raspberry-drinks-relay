@@ -7,6 +7,9 @@ sudo apt install -y python3 python3-pip git chromium-browser x11-xserver-utils u
 echo "Installing Python requirements..."
 pip3 install Flask gpiozero
 
+echo "Installing optional dependencies for real-time log streaming..."
+pip3 install flask-socketio eventlet
+
 echo "Setting up relay control service..."
 sudo cp relay-control.service /etc/systemd/system/relay-control.service
 sudo systemctl enable relay-control
@@ -29,5 +32,9 @@ xset s noblank
 echo "@xset s off" >> /etc/xdg/lxsession/LXDE-pi/autostart
 echo "@xset -dpms" >> /etc/xdg/lxsession/LXDE-pi/autostart
 echo "@xset s noblank" >> /etc/xdg/lxsession/LXDE-pi/autostart
+
+echo "Creating relay control logs directory..."
+mkdir -p /var/log/relay-control
+sudo chown $USER:$USER /var/log/relay-control
 
 echo "Setup complete! Chromium will display the GUI on boot with improved scrolling."

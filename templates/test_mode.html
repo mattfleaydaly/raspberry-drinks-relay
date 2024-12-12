@@ -17,4 +17,15 @@
     <button class="btn-action" onclick="timeTest()">Time Test</button>
     <button class="btn-action" onclick="selfTest()">Self Test</button>
 </div>
+<div id="test-modal" class="modal">
+    <div class="modal-content">
+        <h2>Modal Title</h2>
+        <p>Modal message goes here.</p>
+        <button class="btn-action" onclick="closeModal()">Close</button>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/test_mode.js"></script>
 {% endblock %}

@@ -1,4 +1,4 @@
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, request, Response
 from gpiozero import OutputDevice
 import os
 import socket
@@ -6,6 +6,7 @@ import json
 import time
 import random
 import threading
+import subprocess
 
 app = Flask(__name__)
 
@@ -16,6 +17,15 @@ relay_pins = {
     "Relay 3": OutputDevice(16, active_high=False),
     "Relay 4": OutputDevice(20, active_high=False),
 }
+
+# Helper functions
+def run_command(command):
+    """Run a shell command and return the output."""
+    try:
+        result = subprocess.run(command, shell=True, text=True, capture_output=True)
+        return result.stdout.strip()
+    except Exception as e:
+        return str(e)
 
 # Initialize relay states
 def initialize_relay_states():
@@ -65,10 +75,67 @@ def get_config():
     with open("config.json", "r") as f:
         return json.load(f)
 
+# USB WiFi configuration
+@app.route("/load-usb-wifi-config", methods=["POST"])
+def load_usb_wifi_config():
+    usb_path = "/media/usb/wificonfig.json"
+    if not os.path.exists(usb_path):
+        return jsonify({"message": "No WiFi config file found on USB."}), 400
+
+    try:
+        with open(usb_path, "r") as f:
+            wifi_config = json.load(f)
+        ssid = wifi_config.get("ssid")
+        password = wifi_config.get("password")
+        if not ssid or not password:
+            return jsonify({"message": "Invalid WiFi config file format."}), 400
+
+        # Save and connect to the network
+        result = run_command(f"nmcli dev wifi connect '{ssid}' password '{password}'")
+        if "successfully activated" in result.lower():
+            return jsonify({"message": f"Successfully loaded WiFi config for SSID: {ssid}."})
+        else:
+            return jsonify({"message": f"Failed to connect to {ssid}: {result}"}), 400
+    except Exception as e:
+        return jsonify({"message": f"Error loading WiFi config: {e}"}), 500
+
+# Reset network settings
+@app.route("/reset-network-settings", methods=["POST"])
+def reset_network_settings():
+    try:
+        result = run_command("nmcli connection delete id $(nmcli connection show | grep wifi | awk '{print $1}')")
+        return jsonify({"message": "All network settings have been reset."})
+    except Exception as e:
+        return jsonify({"message": f"Error resetting network settings: {e}"}), 500
+
+# System update with real-time log streaming
+@app.route("/system-update-logs")
+def system_update_logs():
+    def generate():
+        command = ["sudo", "apt-get", "update", "&&", "sudo", "apt-get", "full-upgrade", "-y"]
+        process = subprocess.Popen(
+            command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, shell=True
+        )
+        for line in process.stdout:
+            yield f"data: {line}\n\n"
+        process.wait()
+        if process.returncode == 0:
+            yield "data: Update completed successfully. Rebooting...\n\n"
+            run_command("sudo reboot")
+        else:
+            yield "data: Update failed. Check logs.\n\n"
+
+    return Response(generate(), content_type="text/event-stream")
+
 @app.route("/")
 def home():
     config = get_config()
     return render_template("dashboard.html", system_name=config["system_name"])
+
+@app.route("/about")
+def about():
+    config = get_config()
+    return render_template("about.html", system_name=config["system_name"])
 
 @app.route("/test-mode")
 def test_mode():
@@ -87,29 +154,11 @@ def toggle_relay(relay_name):
 
 @app.route("/get-states")
 def get_states():
-    return jsonify(load_relay_states())
-
-@app.route("/time-test")
-def time_test():
-    for relay_name, relay in relay_pins.items():
-        relay.on()
-        time.sleep(1)
-        relay.off()
-    return jsonify({"status": "Time test completed."})
-
-@app.route("/self-test")
-def self_test():
-    def perform_self_test():
-        for _ in range(random.randint(5, 10)):  # Random number of sequences
-            selected_relays = random.sample(list(relay_pins.keys()), random.randint(1, len(relay_pins)))
-            for relay_name in selected_relays:
-                relay = relay_pins[relay_name]
-                relay.on()
-                time.sleep(random.uniform(0.1, 2.0))  # Random duration
-                relay.off()
-            time.sleep(random.uniform(0.2, 0.5))  # Pause between cycles
-    threading.Thread(target=perform_self_test).start()
-    return jsonify({"status": "Self-test initiated."})
+    try:
+        states = load_relay_states()
+        return jsonify(states)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/settings")
 def settings():
@@ -117,20 +166,27 @@ def settings():
     local_ip = get_local_ip()
     return render_template("settings.html", version=version, local_ip=local_ip)
 
-@app.route("/about")
-def about():
-    config = get_config()
-    return render_template("about.html", system_name=config["system_name"])
+@app.route("/check-updates")
+def check_updates():
+    updates_available = random.choice([True, False])  # Simulate checking for updates
+    return jsonify({"updatesAvailable": updates_available})
 
-@app.route("/update")
-def update_repo():
-    os.system("git pull origin main")
-    return jsonify({"status": "Updated successfully!"})
+@app.route("/system-update", methods=["POST"])
+def system_update():
+    """
+    Perform a system update.
+    """
+    try:
+        update_command = "sudo apt-get update && sudo apt-get full-upgrade -y"
+        result = subprocess.run(update_command, shell=True, text=True, capture_output=True)
+        if result.returncode != 0:
+            return jsonify({"status": "System update failed.", "details": result.stderr}), 500
 
-@app.route("/run-setup", methods=["POST"])
-def run_setup():
-    os.system("./setup.sh")
-    return jsonify({"status": "Setup script executed!"})
+        # Schedule reboot
+        subprocess.Popen(["sudo", "reboot"])
+        return jsonify({"status": "System update completed. Rebooting now..."})
+    except Exception as e:
+        return jsonify({"status": "System update failed.", "details": str(e)}), 500
 
 @app.route("/reboot", methods=["POST"])
 def reboot_system():

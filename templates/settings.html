@@ -5,12 +5,44 @@
 {% block header %}Settings{% endblock %}
 
 {% block content %}
-<div class="grid">
-    <div><strong>Version:</strong> {{ version }}</div>
-    <div><strong>Local IP:</strong> {{ local_ip }}</div>
-    <button class="btn-action" onclick="controlSystem('reboot')">Reboot System</button>
-    <button class="btn-action" onclick="controlSystem('shutdown')">Shutdown System</button>
-    <button class="btn-action" onclick="checkForUpdates()">Check for Updates</button>
-    <button class="btn-action" onclick="location.href='/about'">About</button>
+<div class="content">
+    <div class="grid">
+        <div><strong>Version:</strong> {{ version }}</div>
+        <div><strong>Local IP:</strong> {{ local_ip }}</div>
+        <button id="check-updates-btn" class="btn-action" disabled onclick="checkForUpdates()">Check for Updates</button>
+        <button id="system-update-btn" class="btn-action" onclick="performSystemUpdate()">System Update</button>
+        <button class="btn-action" onclick="location.href='/about'">About</button>
+        <button class="btn-action" onclick="openWiFiConfig()">WiFi Configuration</button>
+        <button class="btn-action" onclick="controlSystem('reboot')">Reboot</button>
+        <button class="btn-action" onclick="controlSystem('shutdown')">Shutdown</button>
+    </div>
+
+    <!-- System Update Modal -->
+    <div id="update-modal" class="modal">
+        <div class="modal-content">
+            <h2>System Update</h2>
+            <div id="update-logs" class="log-container">
+                <!-- Logs will appear here -->
+            </div>
+            <button class="btn-action close-btn" onclick="closeUpdateModal()">Close</button>
+        </div>
+    </div>
+
+    <!-- WiFi Config Modal -->
+    <div id="wifi-modal" class="modal">
+        <div class="modal-content content">
+            <h2>WiFi Configuration</h2>
+            <div class="wifi-options">
+                <button class="btn-action" onclick="closeWiFiModal()">Close Modal</button>
+                <button class="btn-action" onclick="loadWiFiConfigFromUSB()">Load USB Config</button>
+                <button class="btn-action" onclick="resetNetworkSettings()">Reset All Network Settings</button>
+            </div>
+        </div>
+    </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/settings.js"></script>
+<script src="/static/js/keyboard.js"></script>
 {% endblock %}

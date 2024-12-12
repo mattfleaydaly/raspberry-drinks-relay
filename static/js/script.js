@@ -80,22 +80,6 @@ setInterval(() => {
         .catch(err => console.error('Error updating relay states:', err));
 }, 5000);
 
-// Reboot or shutdown the system
-function controlSystem(action) {
-    fetch(`/${action}`, { method: 'POST' })
-        .then(response => response.json())
-        .then(data => alert(data.status))
-        .catch(err => console.error(`Error performing ${action}:`, err));
-}
-
-// Check for updates
-function checkForUpdates() {
-    fetch('/update')
-        .then(response => response.json())
-        .then(data => alert(data.status))
-        .catch(err => console.error('Error checking for updates:', err));
-}
-
 // Toggle relay
 function toggleRelay(relayName) {
     fetch(`/toggle/${relayName}`)
@@ -108,38 +92,8 @@ function toggleRelay(relayName) {
         .catch(err => console.error(`Error toggling relay ${relayName}:`, err));
 }
 
-// Time test function
-function timeTest() {
-    fetch('/time-test')
-        .then(response => response.json())
-        .then(data => alert(data.status))
-        .catch(err => console.error('Error performing time test:', err));
-}
-
-// Self-test function
-function selfTest() {
-    fetch('/self-test')
-        .then(response => response.json())
-        .then(data => alert(data.status))
-        .catch(err => console.error('Error performing self-test:', err));
-}
-
 // Enable drag scrolling on both container and content elements
 document.addEventListener('DOMContentLoaded', () => {
     const content = document.querySelector('.content');
-    enableDragScroll(content);
-
-    // Add buttons for testing
-    const testContainer = document.querySelector('.grid');
-    const timeTestButton = document.createElement('button');
-    timeTestButton.className = 'btn-action';
-    timeTestButton.innerText = 'Time Test';
-    timeTestButton.onclick = timeTest;
-    testContainer.appendChild(timeTestButton);
-
-    const selfTestButton = document.createElement('button');
-    selfTestButton.className = 'btn-action';
-    selfTestButton.innerText = 'Self-Test';
-    selfTestButton.onclick = selfTest;
-    testContainer.appendChild(selfTestButton);
+    if (content) enableDragScroll(content);
 });
