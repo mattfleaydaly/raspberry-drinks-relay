@@ -1,27 +1,50 @@
 {% extends "base.html" %}
-
 {% block title %}Test Mode{% endblock %}
-
 {% block header %}Test Mode{% endblock %}
-
 {% block content %}
-<div class="grid">
-    {% for relay_name, state in relays.items() %}
-    <button id="{{ relay_name }}" class="btn-relay {{ 'btn-success' if state else 'btn-danger' }}" 
-            onclick="toggleRelay('{{ relay_name }}')">
-        {{ relay_name }} - {{ 'ON' if state else 'OFF' }}
-    </button>
-    {% endfor %}
+<div class="container-fluid py-4">
+    <div class="row g-3">
+        {% for relay_name, state in relays.items() %}
+        <div class="col-6 col-md-4 col-lg-3">
+            <button id="{{ relay_name }}" 
+                    class="btn w-100 py-3 btn-relay {{ 'btn-success' if state else 'btn-danger' }}" 
+                    onclick="toggleRelay('{{ relay_name }}')">
+                {{ relay_name }} - {{ 'ON' if state else 'OFF' }}
+            </button>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <div class="row g-3 mt-3">
+        <div class="col-6 col-md-4 col-lg-3">
+            <button class="btn btn-primary w-100 py-3" onclick="timeTest()">Time Test</button>
+        </div>
+        <div class="col-6 col-md-4 col-lg-3">
+            <button class="btn btn-primary w-100 py-3" onclick="selfTest()">Self Test</button>
+        </div>
+        <div class="col-6 col-md-4 col-lg-3">
+            <button id="toggleAllButton" 
+                    class="btn btn-warning w-100 py-3" 
+                    onclick="toggleAll()">All ON</button>
+        </div>
+    </div>
 </div>
-<div class="grid">
-    <button class="btn-action" onclick="timeTest()">Time Test</button>
-    <button class="btn-action" onclick="selfTest()">Self Test</button>
-</div>
-<div id="test-modal" class="modal">
-    <div class="modal-content">
-        <h2>Modal Title</h2>
-        <p>Modal message goes here.</p>
-        <button class="btn-action" onclick="closeModal()">Close</button>
+
+<!-- Test Modal -->
+<div id="test-modal" class="modal fade" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-white">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title">Modal Title</h5>
+                <button type="button" class="btn-close btn-close-white" onclick="closeModal()"></button>
+            </div>
+            <div class="modal-body">
+                <p>Modal message goes here.</p>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button class="btn btn-primary" onclick="closeModal()">Close</button>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}

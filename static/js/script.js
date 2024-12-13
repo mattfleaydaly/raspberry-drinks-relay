@@ -7,7 +7,19 @@ let scrollStartTop = 0;
 
 // Initialize drag scrolling
 function enableDragScroll(container) {
+    if (!container) return;
+
+    // Ensure container is scrollable
+    container.style.overflow = 'auto';
+    container.style.userSelect = 'none';
+    container.style.webkitUserSelect = 'none';
+    container.style.mozUserSelect = 'none';
+    container.style.msUserSelect = 'none';
+
     container.addEventListener('mousedown', (e) => {
+        // Only enable drag on primary mouse button
+        if (e.button !== 0) return;
+        
         isDragging = true;
         container.classList.add('active-drag');
         startX = e.clientX;
@@ -37,6 +49,7 @@ function enableDragScroll(container) {
         }
     });
 
+    // Touch events for mobile devices
     container.addEventListener('touchstart', (e) => {
         const touch = e.touches[0];
         isDragging = true;
@@ -53,7 +66,8 @@ function enableDragScroll(container) {
         const dy = touch.clientY - startY;
         container.scrollLeft = scrollStartLeft - dx;
         container.scrollTop = scrollStartTop - dy;
-    });
+        e.preventDefault(); // Prevent default scroll behavior
+    }, { passive: false });
 
     container.addEventListener('touchend', () => {
         isDragging = false;
@@ -64,6 +78,24 @@ function enableDragScroll(container) {
     });
 }
 
+// Initialize navigation buttons
+function initializeNavButtons() {
+    const backBtn = document.getElementById('backBtn');
+    const homeBtn = document.getElementById('homeBtn');
+
+    if (backBtn) {
+        backBtn.addEventListener('click', () => {
+            window.history.back();
+        });
+    }
+
+    if (homeBtn) {
+        homeBtn.addEventListener('click', () => {
+            window.location.href = '/';
+        });
+    }
+}
+
 // Periodically update relay states
 setInterval(() => {
     fetch('/get-states')
@@ -72,7 +104,8 @@ setInterval(() => {
             for (const [relay, state] of Object.entries(states)) {
                 const button = document.getElementById(relay);
                 if (button) {
-                    button.className = state ? 'btn-relay btn-success' : 'btn-relay btn-danger';
+                    // Update with Bootstrap classes
+                    button.className = `btn w-100 py-3 btn-relay ${state ? 'btn-success' : 'btn-danger'}`;
                     button.innerText = `${relay} - ${state ? 'ON' : 'OFF'}`;
                 }
             }
@@ -86,14 +119,42 @@ function toggleRelay(relayName) {
         .then(response => response.json())
         .then(data => {
             const button = document.getElementById(relayName);
-            button.className = data.state ? 'btn-relay btn-success' : 'btn-relay btn-danger';
+            // Update with Bootstrap classes
+            button.className = `btn w-100 py-3 btn-relay ${data.state ? 'btn-success' : 'btn-danger'}`;
             button.innerText = `${relayName} - ${data.state ? 'ON' : 'OFF'}`;
         })
         .catch(err => console.error(`Error toggling relay ${relayName}:`, err));
 }
 
-// Enable drag scrolling on both container and content elements
+// Enable drag scrolling on page load
 document.addEventListener('DOMContentLoaded', () => {
-    const content = document.querySelector('.content');
-    if (content) enableDragScroll(content);
+    // Initialize navigation buttons
+    initializeNavButtons();
+    
+    // Enable drag scrolling on main container
+    const mainContainer = document.querySelector('.main-container');
+    if (mainContainer) {
+        enableDragScroll(mainContainer);
+    }
+    
+    // Enable drag scrolling on any modal content
+    const modalContents = document.querySelectorAll('.modal-dialog');
+    modalContents.forEach(content => {
+        enableDragScroll(content);
+    });
+});
+
+// Prevent default touch behavior to avoid unwanted scrolling
+document.addEventListener('touchmove', (e) => {
+    if (isDragging) {
+        e.preventDefault();
+    }
+}, { passive: false });
+
+// Re-initialize drag scrolling when modals are shown
+document.addEventListener('shown.bs.modal', (event) => {
+    const modalDialog = event.target.querySelector('.modal-dialog');
+    if (modalDialog) {
+        enableDragScroll(modalDialog);
+    }
 });

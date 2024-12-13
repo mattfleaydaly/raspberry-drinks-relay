@@ -1,12 +1,29 @@
 {% extends "base.html" %}
-
 {% block title %}Dashboard{% endblock %}
-
 {% block header %}System Dashboard{% endblock %}
-
 {% block content %}
-<div class="grid">
-    <button class="btn-action" onclick="location.href='/test-mode'">Test Mode</button>
-    <button class="btn-action" onclick="location.href='/settings'">Settings</button>
+<div class="container-fluid">
+    <div class="row g-3">
+        <div class="col-6 col-md-4 col-lg-3">
+            <button class="btn btn-warning w-100 py-3" onclick="location.href='/test-mode'">
+                <i class="bi bi-tools me-2"></i>Test Mode
+            </button>
+        </div>
+        <div class="col-6 col-md-4 col-lg-3">
+            <button class="btn btn-secondary w-100 py-3" onclick="location.href='/settings'">
+                <i class="bi bi-gear me-2"></i>Settings
+            </button>
+        </div>
+        <div class="col-6 col-md-4 col-lg-3">
+            <button class="btn btn-info w-100 py-3" onclick="location.href='/drinks-config'">
+                <i class="bi bi-cup-straw me-2"></i>Drinks Config
+            </button>
+        </div>
+        <div class="col-6 col-md-4 col-lg-3">
+            <button class="btn btn-success w-100 py-3" onclick="location.href='/make-drinks'">
+                <i class="bi bi-cup-hot me-2"></i>Make Drinks
+            </button>
+        </div>
+    </div>
 </div>
 {% endblock %}

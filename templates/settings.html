@@ -1,48 +1,86 @@
 {% extends "base.html" %}
-
 {% block title %}Settings{% endblock %}
-
 {% block header %}Settings{% endblock %}
-
 {% block content %}
-<div class="content">
-    <div class="grid">
-        <div><strong>Version:</strong> {{ version }}</div>
-        <div><strong>Local IP:</strong> {{ local_ip }}</div>
-        <button id="check-updates-btn" class="btn-action" disabled onclick="checkForUpdates()">Check for Updates</button>
-        <button id="system-update-btn" class="btn-action" onclick="performSystemUpdate()">System Update</button>
-        <button class="btn-action" onclick="location.href='/about'">About</button>
-        <button class="btn-action" onclick="openWiFiConfig()">WiFi Configuration</button>
-        <button class="btn-action" onclick="controlSystem('reboot')">Reboot</button>
-        <button class="btn-action" onclick="controlSystem('shutdown')">Shutdown</button>
+<div class="container-fluid py-4">
+    <div class="card bg-dark text-white mb-4">
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-12 col-md-6">
+                    <p class="mb-2"><strong>Version:</strong> {{ version }}</p>
+                    <p class="mb-0"><strong>Local IP:</strong> {{ local_ip }}</p>
+                </div>
+            </div>
+            
+            <div class="row g-3">
+                <div class="col-6 col-md-4 col-lg-3">
+                    <button id="check-updates-btn" class="btn btn-primary w-100 py-3" disabled onclick="checkForUpdates()">
+                        Check for Updates
+                    </button>
+                </div>
+                <div class="col-6 col-md-4 col-lg-3">
+                    <button id="system-update-btn" class="btn btn-primary w-100 py-3" onclick="performSystemUpdate()">
+                        System Update
+                    </button>
+                </div>
+                <div class="col-6 col-md-4 col-lg-3">
+                    <button class="btn btn-primary w-100 py-3" onclick="location.href='/about'">About</button>
+                </div>
+                <div class="col-6 col-md-4 col-lg-3">
+                    <button class="btn btn-primary w-100 py-3" onclick="openWiFiConfig()">WiFi Configuration</button>
+                </div>
+                <div class="col-6 col-md-4 col-lg-3">
+                    <button class="btn btn-warning w-100 py-3" onclick="controlSystem('reboot')">Reboot</button>
+                </div>
+                <div class="col-6 col-md-4 col-lg-3">
+                    <button class="btn btn-danger w-100 py-3" onclick="controlSystem('shutdown')">Shutdown</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- System Update Modal -->
-    <div id="update-modal" class="modal">
-        <div class="modal-content">
-            <h2>System Update</h2>
-            <div id="update-logs" class="log-container">
-                <!-- Logs will appear here -->
+    <div id="update-modal" class="modal fade" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark text-white">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title">System Update</h5>
+                    <button type="button" class="btn-close btn-close-white" onclick="closeUpdateModal()"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="update-logs" class="log-container bg-black text-success font-monospace p-3 rounded">
+                        <!-- Logs will appear here -->
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button class="btn btn-primary" onclick="closeUpdateModal()">Close</button>
+                </div>
             </div>
-            <button class="btn-action close-btn" onclick="closeUpdateModal()">Close</button>
         </div>
     </div>
 
     <!-- WiFi Config Modal -->
-    <div id="wifi-modal" class="modal">
-        <div class="modal-content content">
-            <h2>WiFi Configuration</h2>
-            <div class="wifi-options">
-                <button class="btn-action" onclick="closeWiFiModal()">Close Modal</button>
-                <button class="btn-action" onclick="loadWiFiConfigFromUSB()">Load USB Config</button>
-                <button class="btn-action" onclick="resetNetworkSettings()">Reset All Network Settings</button>
+    <div id="wifi-modal" class="modal fade" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content bg-dark text-white">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title">WiFi Configuration</h5>
+                    <button type="button" class="btn-close btn-close-white" onclick="closeWiFiModal()"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-grid gap-3">
+                        <button class="btn btn-primary py-2" onclick="loadWiFiConfigFromUSB()">Load USB Config</button>
+                        <button class="btn btn-danger py-2" onclick="resetNetworkSettings()">Reset All Network Settings</button>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button class="btn btn-secondary" onclick="closeWiFiModal()">Close</button>
+                </div>
             </div>
         </div>
     </div>
 </div>
 {% endblock %}
-
 {% block scripts %}
 <script src="/static/js/settings.js"></script>
-<script src="/static/js/keyboard.js"></script>
 {% endblock %}

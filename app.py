@@ -6,6 +6,7 @@ import json
 import time
 import random
 import threading
+from threading import Lock
 import subprocess
 
 app = Flask(__name__)
@@ -17,6 +18,10 @@ relay_pins = {
     "Relay 3": OutputDevice(16, active_high=False),
     "Relay 4": OutputDevice(20, active_high=False),
 }
+
+# Add test locking mechanism
+test_lock = Lock()
+test_in_progress = False
 
 # Helper functions
 def run_command(command):
@@ -75,6 +80,118 @@ def get_config():
     with open("config.json", "r") as f:
         return json.load(f)
 
+# New endpoint to check test status
+@app.route("/test-in-progress")
+def check_test_in_progress():
+    """Check if a test is currently running."""
+    return jsonify({"testing": test_in_progress})
+
+# Testing endpoints
+@app.route("/time-test")
+def time_test():
+    """Run sequential relay test with 1 second delays."""
+    global test_in_progress
+    
+    # Check if test is already running
+    if test_in_progress:
+        return jsonify({"status": "Another test is currently in progress"}), 409
+        
+    try:
+        with test_lock:
+            test_in_progress = True
+            
+            # Reset all relays to OFF first
+            initialize_relay_states()
+            time.sleep(0.5)  # Small delay after reset
+            
+            for relay_name, relay in relay_pins.items():
+                # Turn on relay
+                relay.on()
+                states = load_relay_states()
+                states[relay_name] = True
+                save_relay_states(states)
+                time.sleep(1)
+                
+                # Turn off relay
+                relay.off()
+                states = load_relay_states()
+                states[relay_name] = False
+                save_relay_states(states)
+                time.sleep(0.5)  # Small delay between relays
+            
+            return jsonify({"status": "Time test completed successfully!"})
+    except Exception as e:
+        return jsonify({"status": f"Error during time test: {str(e)}"}), 500
+    finally:
+        test_in_progress = False
+
+@app.route("/self-test")
+def self_test():
+    """Run random relay test for 10 seconds."""
+    global test_in_progress
+    
+    # Check if test is already running
+    if test_in_progress:
+        return jsonify({"status": "Another test is currently in progress"}), 409
+        
+    try:
+        with test_lock:
+            test_in_progress = True
+            
+            # Reset all relays to OFF first
+            initialize_relay_states()
+            time.sleep(0.5)  # Small delay after reset
+            
+            start_time = time.time()
+            while time.time() - start_time < 10:
+                # Randomly select which relays to toggle
+                for relay_name, relay in relay_pins.items():
+                    if random.choice([True, False]):
+                        # Randomly toggle relay
+                        new_state = random.choice([True, False])
+                        if new_state:
+                            relay.on()
+                        else:
+                            relay.off()
+                        
+                        # Update states
+                        states = load_relay_states()
+                        states[relay_name] = new_state
+                        save_relay_states(states)
+                
+                # Random delay between 0.1 and 1 second
+                time.sleep(random.uniform(0.1, 1.0))
+            
+            # Turn all relays off at the end
+            initialize_relay_states()
+            return jsonify({"status": "Self test completed successfully!"})
+    except Exception as e:
+        return jsonify({"status": f"Error during self test: {str(e)}"}), 500
+    finally:
+        test_in_progress = False
+
+@app.route("/toggle-all/<state>")
+def toggle_all(state):
+    """Toggle all relays on or off."""
+    if test_in_progress:
+        return jsonify({"error": "Cannot toggle relays while test is in progress"}), 409
+        
+    try:
+        new_state = state.lower() == "on"
+        states = {}
+        
+        for relay_name, relay in relay_pins.items():
+            if new_state:
+                relay.on()
+            else:
+                relay.off()
+            states[relay_name] = new_state
+        
+        save_relay_states(states)
+        return jsonify({"status": "success", "states": states})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
 # USB WiFi configuration
 @app.route("/load-usb-wifi-config", methods=["POST"])
 def load_usb_wifi_config():
@@ -99,7 +216,6 @@ def load_usb_wifi_config():
     except Exception as e:
         return jsonify({"message": f"Error loading WiFi config: {e}"}), 500
 
-# Reset network settings
 @app.route("/reset-network-settings", methods=["POST"])
 def reset_network_settings():
     try:
@@ -144,6 +260,9 @@ def test_mode():
 
 @app.route("/toggle/<relay_name>")
 def toggle_relay(relay_name):
+    if test_in_progress:
+        return jsonify({"error": "Cannot toggle relay while test is in progress"}), 409
+        
     relay = relay_pins.get(relay_name)
     if relay:
         relay.toggle()

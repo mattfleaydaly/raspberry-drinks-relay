@@ -16,6 +16,18 @@ html, body {
     user-select: none;
 }
 
+.main-container {
+    flex: 1;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 1rem;
+}
+
+.modal-dialog {
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
 .log-container {
     max-height: 400px;
     overflow-y: auto;
