@@ -267,6 +267,141 @@ def system_update_logs():
 
     return Response(generate(), content_type="text/event-stream")
 
+@app.route("/git-pull")
+def git_pull():
+    """Run git pull to update the app."""
+    try:
+        result = subprocess.run(
+            ["git", "-C", "/home/pi/raspberry-drinks-relay", "pull"],
+            capture_output=True,
+            text=True
+        )
+        if result.returncode == 0:
+            return jsonify({"success": True, "output": result.stdout})
+        else:
+            return jsonify({"success": False, "error": result.stderr})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/scan-wifi-networks")
+def scan_wifi_networks():
+    """Scan for available WiFi networks."""
+    try:
+        # Use nmcli to scan for networks
+        result = subprocess.run(
+            ["nmcli", "-t", "-f", "SSID,SIGNAL,SECURITY", "device", "wifi", "list", "--rescan", "yes"],
+            capture_output=True,
+            text=True
+        )
+        
+        if result.returncode != 0:
+            return jsonify({"success": False, "error": result.stderr})
+        
+        networks = []
+        # Parse the output (format: SSID:SIGNAL:SECURITY)
+        for line in result.stdout.strip().split('\n'):
+            if line:
+                parts = line.split(':')
+                if len(parts) >= 3 and parts[0]:  # Ensure we have all parts and SSID is not empty
+                    networks.append({
+                        "ssid": parts[0],
+                        "signal": int(parts[1]) if parts[1].isdigit() else -1,
+                        "security": bool(parts[2])  # True if there's any security
+                    })
+        
+        # Sort by signal strength (strongest first)
+        networks.sort(key=lambda x: x["signal"], reverse=True)
+        
+        # Remove duplicates (keep the one with strongest signal)
+        seen_ssids = set()
+        unique_networks = []
+        for network in networks:
+            if network["ssid"] not in seen_ssids:
+                seen_ssids.add(network["ssid"])
+                unique_networks.append(network)
+        
+        return jsonify({"success": True, "networks": unique_networks})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/connect-wifi", methods=["POST"])
+def connect_wifi():
+    """Connect to a WiFi network."""
+    try:
+        data = request.json
+        if not data or "ssid" not in data:
+            return jsonify({"success": False, "error": "SSID is required"}), 400
+        
+        ssid = data["ssid"]
+        password = data.get("password", "")
+        
+        # Use nmcli to connect to the network
+        if password:
+            result = subprocess.run(
+                ["nmcli", "device", "wifi", "connect", ssid, "password", password],
+                capture_output=True,
+                text=True
+            )
+        else:
+            result = subprocess.run(
+                ["nmcli", "device", "wifi", "connect", ssid],
+                capture_output=True,
+                text=True
+            )
+        
+        if result.returncode == 0:
+            return jsonify({
+                "success": True, 
+                "message": "Connected successfully to " + ssid
+            })
+        else:
+            return jsonify({
+                "success": False, 
+                "error": f"Failed to connect: {result.stderr or result.stdout}"
+            })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/wifi-status")
+def wifi_status():
+    """Get current WiFi connection status."""
+    try:
+        # Check if connected to WiFi
+        connection_result = subprocess.run(
+            ["nmcli", "-t", "-f", "GENERAL.CONNECTION", "device", "show", "wlan0"],
+            capture_output=True,
+            text=True
+        )
+        
+        if "GENERAL.CONNECTION:" not in connection_result.stdout:
+            return jsonify({"connected": False})
+        
+        # Extract the connection name
+        connection_lines = connection_result.stdout.strip().split('\n')
+        connection_line = [line for line in connection_lines if "GENERAL.CONNECTION:" in line]
+        
+        if not connection_line:
+            return jsonify({"connected": False})
+            
+        ssid = connection_line[0].split(':')[1]
+        
+        # If we have a connection, get the IP address
+        ip_result = subprocess.run(
+            ["hostname", "-I"],
+            capture_output=True,
+            text=True
+        )
+        
+        ip = ip_result.stdout.strip().split(' ')[0] if ip_result.stdout.strip() else "Unknown"
+        
+        return jsonify({
+            "connected": bool(ssid),
+            "ssid": ssid,
+            "ip": ip
+        })
+    except Exception as e:
+        return jsonify({"connected": False, "error": str(e)})
+
 @app.route("/")
 def home():
     config = get_config()
@@ -343,7 +478,7 @@ def shutdown_system():
     os.system("sudo shutdown now")
     return jsonify({"status": "System is shutting down..."})
 
-# ----------------- NEW ROUTES -----------------
+# ----------------- DRINKS ROUTES -----------------
 
 @app.route("/drinks-config")
 def drinks_config():

@@ -12,88 +12,239 @@ let availableIcons = [
     'bi-thermometer-high', 'bi-steam'
 ];
 
+// Scrolling variables from your script.js
+let modalDragScroll = {
+    isDragging: false,
+    startX: 0,
+    startY: 0,
+    scrollStartLeft: 0,
+    scrollStartTop: 0
+};
+
 // Initialize the page
 document.addEventListener('DOMContentLoaded', () => {
     initModals();
     initEventListeners();
     loadDrinks();
     populateIconGrid();
-    initTouchScroll();
+    setupModalScrolling();
 });
 
 // Initialize Bootstrap modals
 function initModals() {
     // Drink edit modal
     const drinkModal = document.getElementById('drinkModal');
-    const bsDrinkModal = new bootstrap.Modal(drinkModal);
+    if (drinkModal) {
+        const bsDrinkModal = new bootstrap.Modal(drinkModal);
+        
+        // Set up scroll fix when modal opens
+        drinkModal.addEventListener('shown.bs.modal', () => {
+            const modalBody = drinkModal.querySelector('.modal-body');
+            setupModalBodyScroll(modalBody);
+        });
+    }
     
     // Icon selection modal
     const iconModal = document.getElementById('iconModal');
-    const bsIconModal = new bootstrap.Modal(iconModal);
+    if (iconModal) {
+        const bsIconModal = new bootstrap.Modal(iconModal);
+        
+        // Set up scroll fix when modal opens
+        iconModal.addEventListener('shown.bs.modal', () => {
+            const modalBody = iconModal.querySelector('.modal-body');
+            setupModalBodyScroll(modalBody);
+        });
+    }
     
     // Import/Export modal
     const importExportModal = document.getElementById('importExportModal');
-    const bsImportExportModal = new bootstrap.Modal(importExportModal);
+    if (importExportModal) {
+        const bsImportExportModal = new bootstrap.Modal(importExportModal);
+        
+        // Set up scroll fix when modal opens
+        importExportModal.addEventListener('shown.bs.modal', () => {
+            const modalBody = importExportModal.querySelector('.modal-body');
+            setupModalBodyScroll(modalBody);
+        });
+    }
     
     // Time selection modal
     const timeModal = document.getElementById('timeModal');
-    const bsTimeModal = new bootstrap.Modal(timeModal);
+    if (timeModal) {
+        const bsTimeModal = new bootstrap.Modal(timeModal);
+    }
+}
+
+// Integrate drag scrolling for modal bodies
+function setupModalScrolling() {
+    // Set up event listener for when any modal is shown
+    document.body.addEventListener('shown.bs.modal', (event) => {
+        const modalBody = event.target.querySelector('.modal-body');
+        if (modalBody) {
+            setupModalBodyScroll(modalBody);
+        }
+    });
+}
+
+// Set up scrolling for a specific modal body
+function setupModalBodyScroll(modalBody) {
+    if (!modalBody) return;
+    
+    // Reset any previous event listeners
+    modalBody.removeEventListener('mousedown', handleScrollMouseDown);
+    modalBody.removeEventListener('mousemove', handleScrollMouseMove);
+    modalBody.removeEventListener('mouseup', handleScrollMouseUp);
+    modalBody.removeEventListener('mouseleave', handleScrollMouseLeave);
+    modalBody.removeEventListener('touchstart', handleScrollTouchStart);
+    modalBody.removeEventListener('touchmove', handleScrollTouchMove);
+    modalBody.removeEventListener('touchend', handleScrollTouchEnd);
+    
+    // Ensure modal body has proper styling for scrolling
+    modalBody.style.overflow = 'auto';
+    modalBody.style.overflowX = 'hidden';
+    modalBody.style.maxHeight = '60vh';
+    modalBody.style.position = 'relative';
+    modalBody.style.userSelect = 'none';
+    modalBody.style.webkitUserSelect = 'none';
+    modalBody.style.touchAction = 'pan-y';
+    modalBody.style.webkitOverflowScrolling = 'touch';
+    
+    // Add event listeners for mouse/touch scrolling
+    modalBody.addEventListener('mousedown', handleScrollMouseDown);
+    modalBody.addEventListener('mousemove', handleScrollMouseMove);
+    modalBody.addEventListener('mouseup', handleScrollMouseUp);
+    modalBody.addEventListener('mouseleave', handleScrollMouseLeave);
+    
+    // Touch events
+    modalBody.addEventListener('touchstart', handleScrollTouchStart);
+    modalBody.addEventListener('touchmove', handleScrollTouchMove, { passive: false });
+    modalBody.addEventListener('touchend', handleScrollTouchEnd);
+}
+
+// Mouse event handlers for scrolling
+function handleScrollMouseDown(e) {
+    // Only enable drag on primary mouse button
+    if (e.button !== 0) return;
+    
+    modalDragScroll.isDragging = true;
+    this.classList.add('active-drag');
+    modalDragScroll.startX = e.clientX;
+    modalDragScroll.startY = e.clientY;
+    modalDragScroll.scrollStartLeft = this.scrollLeft;
+    modalDragScroll.scrollStartTop = this.scrollTop;
+}
+
+function handleScrollMouseMove(e) {
+    if (!modalDragScroll.isDragging) return;
+    
+    e.preventDefault();
+    const dx = e.clientX - modalDragScroll.startX;
+    const dy = e.clientY - modalDragScroll.startY;
+    this.scrollLeft = modalDragScroll.scrollStartLeft - dx;
+    this.scrollTop = modalDragScroll.scrollStartTop - dy;
+}
+
+function handleScrollMouseUp() {
+    modalDragScroll.isDragging = false;
+    this.classList.remove('active-drag');
+}
+
+function handleScrollMouseLeave() {
+    if (modalDragScroll.isDragging) {
+        modalDragScroll.isDragging = false;
+        this.classList.remove('active-drag');
+    }
+}
+
+// Touch event handlers for scrolling
+function handleScrollTouchStart(e) {
+    const touch = e.touches[0];
+    modalDragScroll.isDragging = true;
+    modalDragScroll.startX = touch.clientX;
+    modalDragScroll.startY = touch.clientY;
+    modalDragScroll.scrollStartLeft = this.scrollLeft;
+    modalDragScroll.scrollStartTop = this.scrollTop;
+}
+
+function handleScrollTouchMove(e) {
+    if (!modalDragScroll.isDragging) return;
+    
+    const touch = e.touches[0];
+    const dx = touch.clientX - modalDragScroll.startX;
+    const dy = touch.clientY - modalDragScroll.startY;
+    
+    // Calculate movement direction
+    const isScrollingVertically = Math.abs(dy) > Math.abs(dx);
+    
+    // If scrolling vertically and we're at the top or bottom edge, don't prevent default
+    const isAtTop = this.scrollTop <= 0 && dy > 0;
+    const isAtBottom = this.scrollTop >= (this.scrollHeight - this.offsetHeight) && dy < 0;
+    
+    if (isScrollingVertically && !isAtTop && !isAtBottom) {
+        e.preventDefault();
+    }
+    
+    this.scrollTop = modalDragScroll.scrollStartTop - dy;
+}
+
+function handleScrollTouchEnd() {
+    modalDragScroll.isDragging = false;
 }
 
 // Set up all event listeners
 function initEventListeners() {
     // Add drink button
-    document.getElementById('addDrinkBtn').addEventListener('click', () => {
+    document.getElementById('addDrinkBtn')?.addEventListener('click', () => {
         openDrinkModal();
     });
     
     // Save drink button
-    document.getElementById('saveDrinkBtn').addEventListener('click', () => {
+    document.getElementById('saveDrinkBtn')?.addEventListener('click', () => {
         saveDrink();
     });
     
     // Delete drink button
-    document.getElementById('deleteDrinkBtn').addEventListener('click', () => {
+    document.getElementById('deleteDrinkBtn')?.addEventListener('click', () => {
         deleteDrink();
     });
     
     // Add relay step button
-    document.getElementById('addStepBtn').addEventListener('click', () => {
+    document.getElementById('addStepBtn')?.addEventListener('click', () => {
         addRelayStep();
     });
     
     // Import/Export button
-    document.getElementById('importExportBtn').addEventListener('click', () => {
+    document.getElementById('importExportBtn')?.addEventListener('click', () => {
         openImportExportModal();
     });
     
     // Icon selector dropdown
-    document.getElementById('iconSelector').addEventListener('change', (e) => {
+    document.getElementById('iconSelector')?.addEventListener('change', (e) => {
         updateIconPreview(e.target.value);
     });
     
     // More icons button
-    document.getElementById('moreIconsBtn').addEventListener('click', () => {
+    document.getElementById('moreIconsBtn')?.addEventListener('click', () => {
         openIconModal();
     });
     
     // Copy data button
-    document.getElementById('copyDataBtn').addEventListener('click', () => {
+    document.getElementById('copyDataBtn')?.addEventListener('click', () => {
         copyToClipboard();
     });
     
     // Import data button
-    document.getElementById('importDataBtn').addEventListener('click', () => {
+    document.getElementById('importDataBtn')?.addEventListener('click', () => {
         importData();
     });
     
     // Time slider
-    document.getElementById('timeSlider').addEventListener('input', (e) => {
+    document.getElementById('timeSlider')?.addEventListener('input', (e) => {
         document.getElementById('timeValue').textContent = e.target.value;
     });
     
     // Time up/down buttons
-    document.getElementById('timeUpBtn').addEventListener('click', () => {
+    document.getElementById('timeUpBtn')?.addEventListener('click', () => {
         const timeValue = document.getElementById('timeValue');
         const slider = document.getElementById('timeSlider');
         const newVal = Math.min(parseInt(timeValue.textContent) + 1, 30);
@@ -101,7 +252,7 @@ function initEventListeners() {
         slider.value = newVal;
     });
     
-    document.getElementById('timeDownBtn').addEventListener('click', () => {
+    document.getElementById('timeDownBtn')?.addEventListener('click', () => {
         const timeValue = document.getElementById('timeValue');
         const slider = document.getElementById('timeSlider');
         const newVal = Math.max(parseInt(timeValue.textContent) - 1, 1);
@@ -110,7 +261,7 @@ function initEventListeners() {
     });
     
     // Set time button
-    document.getElementById('setTimeBtn').addEventListener('click', () => {
+    document.getElementById('setTimeBtn')?.addEventListener('click', () => {
         const time = parseInt(document.getElementById('timeValue').textContent);
         const timeModal = bootstrap.Modal.getInstance(document.getElementById('timeModal'));
         
@@ -158,6 +309,8 @@ function renderDrinksList() {
     const drinksList = document.getElementById('drinksList');
     const noDrinksMessage = document.getElementById('no-drinks-message');
     
+    if (!drinksList || !noDrinksMessage) return;
+    
     if (drinksData.length === 0) {
         drinksList.innerHTML = '';
         noDrinksMessage.style.display = 'block';
@@ -190,6 +343,8 @@ function openDrinkModal(drinkIndex = -1) {
     const modalTitle = document.getElementById('drinkModalTitle');
     const drinkForm = document.getElementById('drinkForm');
     const deleteBtn = document.getElementById('deleteDrinkBtn');
+    
+    if (!modal || !modalTitle || !drinkForm || !deleteBtn) return;
     
     // Reset form
     drinkForm.reset();
@@ -230,12 +385,16 @@ function openDrinkModal(drinkIndex = -1) {
 // Update the icon preview
 function updateIconPreview(iconClass) {
     const preview = document.getElementById('selectedIconPreview');
-    preview.className = iconClass;
+    if (preview) {
+        preview.className = iconClass;
+    }
 }
 
 // Add a relay step to the form
 function addRelayStep(relay = 1, time = 5, action = 'on') {
     const relaySteps = document.getElementById('relaySteps');
+    if (!relaySteps) return;
+    
     const index = relaySteps.children.length;
     
     const stepElement = document.createElement('div');
@@ -305,21 +464,36 @@ function removeStep(index) {
 function openTimeModal(stepIndex) {
     currentStepIndex = stepIndex;
     const timeDisplay = document.querySelector(`#relaySteps .relay-step[data-index="${stepIndex}"] .time-display`);
+    if (!timeDisplay) return;
+    
     const currentTime = parseInt(timeDisplay.dataset.time || "5");
     
-    document.getElementById('timeValue').textContent = currentTime;
-    document.getElementById('timeSlider').value = currentTime;
+    const timeValueElement = document.getElementById('timeValue');
+    const timeSliderElement = document.getElementById('timeSlider');
     
-    const timeModal = bootstrap.Modal.getInstance(document.getElementById('timeModal')) || 
-                        new bootstrap.Modal(document.getElementById('timeModal'));
-    timeModal.show();
+    if (timeValueElement && timeSliderElement) {
+        timeValueElement.textContent = currentTime;
+        timeSliderElement.value = currentTime;
+    }
+    
+    const timeModal = document.getElementById('timeModal');
+    if (timeModal) {
+        const modal = bootstrap.Modal.getInstance(timeModal) || new bootstrap.Modal(timeModal);
+        modal.show();
+    }
 }
 
 // Save the drink
 function saveDrink() {
-    const drinkIndex = document.getElementById('drinkId').value;
-    const name = document.getElementById('drinkName').value.trim();
-    const icon = document.getElementById('iconSelector').value;
+    const drinkIdElement = document.getElementById('drinkId');
+    const nameElement = document.getElementById('drinkName');
+    const iconElement = document.getElementById('iconSelector');
+    
+    if (!drinkIdElement || !nameElement || !iconElement) return;
+    
+    const drinkIndex = drinkIdElement.value;
+    const name = nameElement.value.trim();
+    const icon = iconElement.value;
     
     if (!name) {
         showToast('Please enter a drink name', 'warning');
@@ -364,12 +538,17 @@ function saveDrink() {
     
     // Close modal
     const modal = bootstrap.Modal.getInstance(document.getElementById('drinkModal'));
-    modal.hide();
+    if (modal) {
+        modal.hide();
+    }
 }
 
 // Delete a drink
 function deleteDrink() {
-    const drinkIndex = parseInt(document.getElementById('drinkId').value);
+    const drinkIdElement = document.getElementById('drinkId');
+    if (!drinkIdElement) return;
+    
+    const drinkIndex = parseInt(drinkIdElement.value);
     
     if (isNaN(drinkIndex) || drinkIndex < 0 || drinkIndex >= drinksData.length) {
         return;
@@ -382,7 +561,9 @@ function deleteDrink() {
         
         // Close modal
         const modal = bootstrap.Modal.getInstance(document.getElementById('drinkModal'));
-        modal.hide();
+        if (modal) {
+            modal.hide();
+        }
     }
 }
 
@@ -422,6 +603,8 @@ function editDrink(index) {
 // Populate the icon grid
 function populateIconGrid() {
     const iconGrid = document.getElementById('iconGrid');
+    if (!iconGrid) return;
+    
     let html = '';
     
     availableIcons.forEach(icon => {
@@ -437,16 +620,21 @@ function populateIconGrid() {
 
 // Open the icon selection modal
 function openIconModal() {
-    const iconModal = bootstrap.Modal.getInstance(document.getElementById('iconModal')) || 
-                      new bootstrap.Modal(document.getElementById('iconModal'));
-    iconModal.show();
+    const iconModal = document.getElementById('iconModal');
+    if (!iconModal) return;
+    
+    const modal = bootstrap.Modal.getInstance(iconModal) || new bootstrap.Modal(iconModal);
+    modal.show();
 }
 
 // Select an icon
 function selectIcon(iconClass) {
     // Update the selector
-    document.getElementById('iconSelector').value = iconClass;
-    updateIconPreview(iconClass);
+    const iconSelector = document.getElementById('iconSelector');
+    if (iconSelector) {
+        iconSelector.value = iconClass;
+        updateIconPreview(iconClass);
+    }
     
     // Highlight selected icon
     document.querySelectorAll('.icon-item').forEach(item => {
@@ -459,23 +647,31 @@ function selectIcon(iconClass) {
     
     // Close icon modal
     const iconModal = bootstrap.Modal.getInstance(document.getElementById('iconModal'));
-    iconModal.hide();
+    if (iconModal) {
+        iconModal.hide();
+    }
 }
 
 // Open import/export modal
 function openImportExportModal() {
+    const exportDataElement = document.getElementById('exportData');
+    const importExportModal = document.getElementById('importExportModal');
+    
+    if (!exportDataElement || !importExportModal) return;
+    
     // Populate export data
-    document.getElementById('exportData').value = JSON.stringify(drinksData, null, 2);
+    exportDataElement.value = JSON.stringify(drinksData, null, 2);
     
     // Show modal
-    const modal = bootstrap.Modal.getInstance(document.getElementById('importExportModal')) || 
-                  new bootstrap.Modal(document.getElementById('importExportModal'));
+    const modal = bootstrap.Modal.getInstance(importExportModal) || new bootstrap.Modal(importExportModal);
     modal.show();
 }
 
 // Copy data to clipboard
 function copyToClipboard() {
     const exportData = document.getElementById('exportData');
+    if (!exportData) return;
+    
     exportData.select();
     document.execCommand('copy');
     showToast('Data copied to clipboard', 'success');
@@ -483,7 +679,10 @@ function copyToClipboard() {
 
 // Import data
 function importData() {
-    const importData = document.getElementById('importData').value.trim();
+    const importDataElement = document.getElementById('importData');
+    if (!importDataElement) return;
+    
+    const importData = importDataElement.value.trim();
     
     if (!importData) {
         showToast('No data to import', 'warning');
@@ -511,7 +710,9 @@ function importData() {
             
             // Close modal
             const modal = bootstrap.Modal.getInstance(document.getElementById('importExportModal'));
-            modal.hide();
+            if (modal) {
+                modal.hide();
+            }
         }
     } catch (error) {
         showToast('Invalid JSON data', 'danger');
@@ -566,45 +767,3 @@ window.editDrink = editDrink;
 window.removeStep = removeStep;
 window.openTimeModal = openTimeModal;
 window.selectIcon = selectIcon;
-
-// Initialize touch scrolling for modals
-function initTouchScroll() {
-    // Apply custom touch scrolling to modal content
-    const modalBodies = document.querySelectorAll('.modal-body');
-    
-    modalBodies.forEach(body => {
-        // Variables to track touch position
-        let startY = 0;
-        let scrollTop = 0;
-        
-        // Touch start event
-        body.addEventListener('touchstart', function(e) {
-            startY = e.touches[0].pageY;
-            scrollTop = this.scrollTop;
-            
-            // Allow native scrolling to work first
-            e.stopPropagation();
-        }, { passive: true });
-        
-        // Touch move event
-        body.addEventListener('touchmove', function(e) {
-            // Calculate distance moved
-            const touchY = e.touches[0].pageY;
-            const distance = startY - touchY;
-            
-            // Scroll the element
-            this.scrollTop = scrollTop + distance;
-            
-            // If we've actually scrolled, prevent default to avoid body scrolling
-            if (Math.abs(distance) > 5) {
-                if ((this.scrollTop === 0 && distance < 0) || 
-                   (this.scrollTop >= (this.scrollHeight - this.offsetHeight) && distance > 0)) {
-                    // At the boundary, allow parent scrolling
-                } else {
-                    // Not at boundary, prevent parent scrolling
-                    e.stopPropagation();
-                }
-            }
-        }, { passive: true });
-    });
-}

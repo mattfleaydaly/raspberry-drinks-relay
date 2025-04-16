@@ -2,129 +2,107 @@
 {% block title %}Make Drinks{% endblock %}
 {% block header %}Make Drinks{% endblock %}
 {% block content %}
-<div class="container-fluid px-0 py-2">
-    <!-- Status Indicator -->
-    <div class="card mb-2">
-        <div class="card-body p-2 d-flex justify-content-between align-items-center">
-            <div>
-                <span class="status-indicator status-online"></span>
-                <span class="fw-medium">Ready to Serve</span>
-            </div>
-            <div>
-                <span class="badge bg-success">Water: OK</span>
-            </div>
+<div class="container-fluid">
+    <!-- Status Banner -->
+    <div id="status-banner" class="alert alert-primary mb-3 d-none">
+        <div class="d-flex align-items-center">
+            <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+            <span id="status-message">Preparing drink...</span>
+        </div>
+        <div class="progress mt-2">
+            <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" style="width: 0%"></div>
         </div>
     </div>
     
-    <!-- Drink Selection -->
-    <h6 class="small text-muted mb-1">Select a drink:</h6>
-    <div class="row g-1">
-        <!-- Drink options -->
-        <div class="col-6">
-            <button class="btn w-100 drink-btn" data-drink="coffee">
-                <i class="bi bi-cup-hot"></i>
-                <div>Coffee</div>
-            </button>
-        </div>
-        <div class="col-6">
-            <button class="btn w-100 drink-btn" data-drink="tea">
-                <i class="bi bi-cup"></i>
-                <div>Tea</div>
-            </button>
-        </div>
-        <div class="col-6">
-            <button class="btn w-100 drink-btn" data-drink="hot-chocolate">
-                <i class="bi bi-cup-straw"></i>
-                <div>Hot Chocolate</div>
-            </button>
-        </div>
-        <div class="col-6">
-            <button class="btn w-100 drink-btn" data-drink="mocha">
-                <i class="bi bi-cup-fill"></i>
-                <div>Mocha</div>
-            </button>
-        </div>
+    <!-- No drinks message -->
+    <div id="no-drinks-message" class="text-center p-5 {% if drinks %}d-none{% endif %}">
+        <i class="bi bi-cup-straw fs-1 mb-3 d-block text-muted"></i>
+        <h5 class="text-muted">No drinks configured</h5>
+        <p class="text-muted">Add drinks in the Drinks Configuration page</p>
+        <a href="/drinks-config" class="btn btn-primary mt-2">
+            <i class="bi bi-gear"></i> Configure Drinks
+        </a>
     </div>
     
-    <!-- Current Selection -->
-    <div class="card mt-3">
-        <div class="card-header py-2">
-            <span>Current Selection</span>
-        </div>
-        <div class="card-body p-2" id="selected-drink-display">
-            <div class="text-center text-muted py-2">
-                <i class="bi bi-cup-straw fs-3 d-block mb-1"></i>
-                Please select a drink
-            </div>
-        </div>
-    </div>
-    
-    <!-- Options -->
-    <div id="options-container" style="display:none;">
-        <h6 class="small text-muted my-2">Customize:</h6>
-        
-        <div class="card mb-2">
-            <div class="card-body p-2">
-                <div class="mb-1">
-                    <label class="form-label mb-1">Size</label>
-                    <div class="btn-group w-100" role="group">
-                        <input type="radio" class="btn-check" name="size" id="size-small" autocomplete="off" checked>
-                        <label class="btn btn-outline-primary" for="size-small">Small</label>
-                        
-                        <input type="radio" class="btn-check" name="size" id="size-medium" autocomplete="off">
-                        <label class="btn btn-outline-primary" for="size-medium">Medium</label>
-                        
-                        <input type="radio" class="btn-check" name="size" id="size-large" autocomplete="off">
-                        <label class="btn btn-outline-primary" for="size-large">Large</label>
-                    </div>
+    <!-- Drinks Grid -->
+    <div id="drinks-grid" class="row g-3 {% if not drinks %}d-none{% endif %}">
+        {% for drink in drinks %}
+        <div class="col-6 col-md-4 col-xl-3">
+            <div class="card bg-dark text-white h-100">
+                <div class="card-body text-center">
+                    <i class="{{ drink.icon }} fs-1 mb-2"></i>
+                    <h5 class="card-title">{{ drink.name }}</h5>
+                    <small class="text-muted">{{ drink.steps|length }} steps</small>
                 </div>
-                
-                <div class="mb-1">
-                    <label class="form-label mb-1">Strength</label>
-                    <input type="range" class="form-range" min="1" max="5" id="strength">
-                </div>
-                
-                <div>
-                    <label class="form-label mb-1">Sugar</label>
-                    <div class="btn-group w-100">
-                        <input type="radio" class="btn-check" name="sugar" id="sugar-none" autocomplete="off" checked>
-                        <label class="btn btn-outline-secondary" for="sugar-none">None</label>
-                        
-                        <input type="radio" class="btn-check" name="sugar" id="sugar-low" autocomplete="off">
-                        <label class="btn btn-outline-secondary" for="sugar-low">Low</label>
-                        
-                        <input type="radio" class="btn-check" name="sugar" id="sugar-medium" autocomplete="off">
-                        <label class="btn btn-outline-secondary" for="sugar-medium">Med</label>
-                        
-                        <input type="radio" class="btn-check" name="sugar" id="sugar-high" autocomplete="off">
-                        <label class="btn btn-outline-secondary" for="sugar-high">High</label>
-                    </div>
+                <div class="card-footer p-2">
+                    <button class="btn btn-primary w-100 make-drink-btn" 
+                            data-drink-id="{{ loop.index0 }}"
+                            data-drink-name="{{ drink.name }}"
+                            data-total-time="{{ drink.steps|map(attribute='time')|sum }}">
+                        <i class="bi bi-cup-hot"></i> Make
+                    </button>
                 </div>
             </div>
         </div>
+        {% endfor %}
     </div>
-    
-    <!-- Make Drink Button -->
-    <div class="mt-3">
-        <button id="make-drink-btn" class="btn btn-primary w-100 py-2" disabled>
-            <i class="bi bi-cup-hot"></i> Make Drink
-        </button>
+</div>
+
+<!-- Confirmation Modal -->
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-white">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title">Confirm</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p id="confirm-message">Are you sure you want to make this drink?</p>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmMakeBtn">Make Drink</button>
+            </div>
+        </div>
     </div>
-    
-    <!-- Progress Modal -->
-    <div class="modal fade" id="progressModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Making your drink</h5>
+</div>
+
+<!-- Drink Complete Modal -->
+<div class="modal fade" id="completeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-white">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title">Drink Ready!</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <i class="bi bi-check-circle-fill text-success fs-1 mb-3"></i>
+                <h4 id="complete-drink-name">Your drink is ready!</h4>
+                <p>Enjoy your drink.</p>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Done</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Error Modal -->
+<div class="modal fade" id="errorModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-white">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title">Error</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-3">
+                    <i class="bi bi-exclamation-circle-fill text-danger fs-1"></i>
                 </div>
-                <div class="modal-body text-center p-4">
-                    <div class="progress mb-3">
-                        <div id="drink-progress" class="progress-bar progress-bar-striped progress-bar-animated" 
-                             role="progressbar" style="width: 0%"></div>
-                    </div>
-                    <div id="status-message">Preparing...</div>
-                </div>
+                <p id="error-message">An error occurred while making your drink.</p>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
             </div>
         </div>
     </div>
@@ -132,144 +110,60 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const drinkButtons = document.querySelectorAll('.drink-btn');
-        const makeDrinkBtn = document.getElementById('make-drink-btn');
-        const selectedDrinkDisplay = document.getElementById('selected-drink-display');
-        const optionsContainer = document.getElementById('options-container');
-        const progressModal = new bootstrap.Modal(document.getElementById('progressModal'));
-        const progressBar = document.getElementById('drink-progress');
-        const statusMessage = document.getElementById('status-message');
-        
-        let selectedDrink = null;
-        
-        // Set up drink button styles
-        drinkButtons.forEach(button => {
-            // Assign color based on drink type
-            const drinkType = button.getAttribute('data-drink');
-            switch(drinkType) {
-                case 'coffee':
-                    button.classList.add('btn-dark');
-                    break;
-                case 'tea':
-                    button.classList.add('btn-success');
-                    break;
-                case 'hot-chocolate':
-                    button.classList.add('btn-danger');
-                    break;
-                case 'mocha':
-                    button.classList.add('btn-warning');
-                    break;
-                default:
-                    button.classList.add('btn-info');
-            }
-            
-            // Set up click handler
-            button.addEventListener('click', function() {
-                // Remove active class from all buttons
-                drinkButtons.forEach(btn => btn.classList.remove('active'));
-                
-                // Add active to this button
-                this.classList.add('active');
-                
-                // Store selected drink
-                selectedDrink = this.getAttribute('data-drink');
-                
-                // Update display
-                const drinkName = this.textContent.trim();
-                const iconClass = this.querySelector('i').className;
-                
-                selectedDrinkDisplay.innerHTML = `
-                    <div class="text-center py-2">
-                        <i class="${iconClass} fs-3 d-block mb-1"></i>
-                        <div class="fw-bold">${drinkName}</div>
-                    </div>
-                `;
-                
-                // Show options
-                optionsContainer.style.display = 'block';
-                
-                // Enable make drink button
-                makeDrinkBtn.disabled = false;
-            });
-        });
-        
-        // Make drink button handler
-        makeDrinkBtn.addEventListener('click', function() {
-            if (!selectedDrink) return;
-            
-            // Get options
-            const size = document.querySelector('input[name="size"]:checked')?.id.replace('size-', '') || 'small';
-            const strength = document.getElementById('strength')?.value || '3';
-            const sugar = document.querySelector('input[name="sugar"]:checked')?.id.replace('sugar-', '') || 'none';
-            
-            // Show progress modal
-            progressModal.show();
-            progressBar.style.width = '0%';
-            statusMessage.textContent = 'Preparing...';
-            
-            // Simulate drink making process
-            let progress = 0;
-            const interval = setInterval(() => {
-                progress += 5;
-                progressBar.style.width = `${progress}%`;
-                
-                // Update status message
-                if (progress < 20) {
-                    statusMessage.textContent = 'Heating water...';
-                } else if (progress < 40) {
-                    statusMessage.textContent = 'Adding ingredients...';
-                } else if (progress < 60) {
-                    statusMessage.textContent = 'Mixing...';
-                } else if (progress < 80) {
-                    statusMessage.textContent = 'Pouring...';
-                } else {
-                    statusMessage.textContent = 'Almost ready...';
-                }
-                
-                // When complete
-                if (progress >= 100) {
-                    clearInterval(interval);
-                    statusMessage.textContent = 'Your drink is ready!';
-                    
-                    // Add success class
-                    progressBar.classList.remove('progress-bar-animated');
-                    progressBar.classList.add('bg-success');
-                    
-                    // Close modal after delay
-                    setTimeout(() => {
-                        progressModal.hide();
-                        
-                        // Reset UI after a short delay
-                        setTimeout(() => {
-                            // Reset selected drink
-                            selectedDrink = null;
-                            
-                            // Reset active buttons
-                            drinkButtons.forEach(btn => btn.classList.remove('active'));
-                            
-                            // Reset display
-                            selectedDrinkDisplay.innerHTML = `
-                                <div class="text-center text-muted py-2">
-                                    <i class="bi bi-cup-straw fs-3 d-block mb-1"></i>
-                                    Please select a drink
-                                </div>
-                            `;
-                            
-                            // Hide options
-                            optionsContainer.style.display = 'none';
-                            
-                            // Disable make drink button
-                            makeDrinkBtn.disabled = true;
-                            
-                            // Reset progress bar
-                            progressBar.style.width = '0%';
-                            progressBar.classList.add('progress-bar-animated');
-                            progressBar.classList.remove('bg-success');
-                        }, 500);
-                    }, 2000);
-                }
-            }, 200);
-        });
-    });
+<script src="/static/js/make-drinks.js"></script>
+<style>
+/* Card hover effect */
+.card {
+    transition: transform 0.2s, box-shadow 0.2s;
+    border: 1px solid #444;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* Icon styling */
+.card i.fs-1 {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+/* Make button hover */
+.make-drink-btn {
+    transition: all 0.2s;
+}
+
+.make-drink-btn:hover {
+    filter: brightness(1.1);
+}
+
+/* Progress bar styling */
+.progress {
+    height: 8px;
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Empty state styling */
+#no-drinks-message {
+    padding: 4rem 1rem;
+    margin: 1rem 0;
+    border-radius: 10px;
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+#no-drinks-message i {
+    opacity: 0.5;
+}
+
+/* Responsive font size adjustments */
+@media (max-width: 576px) {
+    .card-title {
+        font-size: 1rem;
+    }
+    
+    .card i.fs-1 {
+        font-size: 2rem !important;
+    }
+}
+</style>
+{% endblock %}

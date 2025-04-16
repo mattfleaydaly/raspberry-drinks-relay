@@ -37,13 +37,13 @@
     
     <!-- Edit Drink Modal -->
     <div class="modal fade" id="drinkModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content bg-dark text-white">
                 <div class="modal-header border-secondary">
                     <h5 class="modal-title" id="drinkModalTitle">Edit Drink</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body" style="overflow-y: auto; max-height: 250px; -webkit-overflow-scrolling: touch;">
+                <div class="modal-body modal-scrollable">
                     <form id="drinkForm">
                         <input type="hidden" id="drinkId">
                         
@@ -99,13 +99,13 @@
     
     <!-- Icon Selection Modal -->
     <div class="modal fade" id="iconModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content bg-dark text-white">
                 <div class="modal-header border-secondary">
                     <h5 class="modal-title">Select Icon</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body" style="overflow-y: auto; max-height: 250px; -webkit-overflow-scrolling: touch;">
+                <div class="modal-body modal-scrollable">
                     <div class="icon-grid" id="iconGrid">
                         <!-- Icons will be populated here -->
                     </div>
@@ -116,13 +116,13 @@
     
     <!-- Import/Export Modal -->
     <div class="modal fade" id="importExportModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content bg-dark text-white">
                 <div class="modal-header border-secondary">
                     <h5 class="modal-title">Import/Export Drinks</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body" style="overflow-y: auto; max-height: 250px; -webkit-overflow-scrolling: touch;">
+                <div class="modal-body modal-scrollable">
                     <div class="mb-3">
                         <label for="exportData" class="form-label">Export Data</label>
                         <textarea class="form-control" id="exportData" rows="5" readonly></textarea>
@@ -234,14 +234,43 @@
 }
 
 /* Improved scrolling for modals */
-.modal-dialog-scrollable .modal-content {
-    max-height: 90vh;
+.modal-scrollable {
+    max-height: 60vh !important;
+    overflow-y: auto !important;
+    overflow-x: hidden;
+    padding-right: 5px;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    position: relative;
 }
 
-.modal-body {
-    -webkit-overflow-scrolling: touch;
-    overflow-y: auto;
-    touch-action: pan-y;
+/* Dragging cursor style */
+.active-drag {
+    cursor: grabbing !important;
+}
+
+/* Mobile specific styles */
+@media (max-width: 576px) {
+    .modal-scrollable {
+        max-height: 50vh !important;
+    }
+    
+    .modal-dialog {
+        margin: 0.5rem;
+    }
+    
+    .modal-footer {
+        padding: 0.5rem;
+    }
+}
+
+/* Make form controls easier to tap on mobile */
+.form-control, .form-select, .btn {
+    min-height: 38px;
+}
+
+.time-display {
+    cursor: pointer;
 }
 </style>
 {% endblock %}

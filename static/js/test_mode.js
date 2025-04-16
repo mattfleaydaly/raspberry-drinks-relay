@@ -1,6 +1,7 @@
 // Global variable to track all relays state
 let allRelaysOn = false;
 let testInProgress = false;
+let currentModal = null; // Track the current modal instance
 
 // Log message function
 function logMessage(message) {
@@ -34,6 +35,12 @@ function checkTestStatus() {
 
 // Utility function to show a modal
 function showModal(title, message) {
+    // Hide any existing modal first
+    if (currentModal) {
+        currentModal.hide();
+        currentModal = null;
+    }
+    
     // Use existing Bootstrap modal
     const modal = document.getElementById('test-modal');
     const modalTitle = modal.querySelector('.modal-title');
@@ -45,6 +52,15 @@ function showModal(title, message) {
     // Show modal using Bootstrap
     const bsModal = new bootstrap.Modal(modal);
     bsModal.show();
+    currentModal = bsModal;
+}
+
+// Close modal function
+function closeModal() {
+    if (currentModal) {
+        currentModal.hide();
+        currentModal = null;
+    }
 }
 
 // Toggle individual relay
@@ -325,6 +341,22 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!this.classList.contains('opacity-75') && !testInProgress) {
                 toggleAll();
             }
+        });
+    }
+    
+    // Setup modal close function for Bootstrap 5
+    document.querySelectorAll('[onclick="closeModal()"]').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            closeModal();
+        });
+    });
+    
+    // Handle modal hidden event to clean up
+    const modalElement = document.getElementById('test-modal');
+    if (modalElement) {
+        modalElement.addEventListener('hidden.bs.modal', function() {
+            currentModal = null;
         });
     }
     

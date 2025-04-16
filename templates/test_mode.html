@@ -57,18 +57,18 @@
 </div>
 
 <!-- Test Modal -->
-<div id="test-modal" class="modal fade" tabindex="-1">
+<div id="test-modal" class="modal fade" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content bg-dark text-white">
             <div class="modal-header border-secondary">
                 <h5 class="modal-title">Modal Title</h5>
-                <button type="button" class="btn-close btn-close-white" onclick="closeModal()"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" onclick="closeModal()"></button>
             </div>
             <div class="modal-body">
                 <p>Modal message goes here.</p>
             </div>
             <div class="modal-footer border-secondary">
-                <button class="btn btn-primary" onclick="closeModal()">Close</button>
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal" onclick="closeModal()">Close</button>
             </div>
         </div>
     </div>
