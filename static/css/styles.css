@@ -7,6 +7,8 @@ html, body {
     padding: 0;
     height: 100%;
     width: 100%;
+    max-width: 320px;
+    margin: 0 auto;
     overflow: hidden; /* Prevent page from overflowing */
     display: flex;
     flex-direction: column;
@@ -20,7 +22,7 @@ html, body {
     flex: 1;
     overflow: auto;
     -webkit-overflow-scrolling: touch;
-    padding: 1rem;
+    padding: 0.7rem;
 }
 
 .modal-dialog {
@@ -55,6 +57,8 @@ html, body {
     overflow: auto;
     -webkit-overflow-scrolling: touch;
     max-height: 80%;
+    max-width: 300px;
+    margin: 0 auto;
 }
 
 .wifi-list {
@@ -175,7 +179,7 @@ body.active-drag {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 10px 20px;
+    padding: 10px;
     background-color: #282c34; /* Slightly darker header background */
     color: #00d1b2;
     border-bottom: 2px solid #444;
@@ -183,12 +187,18 @@ body.active-drag {
     top: 0;
     z-index: 100;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .header h1 {
     margin: 0;
-    font-size: 1.5rem;
+    font-size: 1.3rem;
     color: white;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
 }
 
 .home-btn {
@@ -254,7 +264,8 @@ h1 {
     margin: 5px;
     text-align: center;
     transition: transform 0.2s, background 0.3s;
-    max-width: 100%; /* Ensure buttons fit in grid */
+    white-space: normal; /* Ensure text doesn't get cut off */
+    word-wrap: break-word;
 }
 
 /* Hover effect for buttons */
@@ -302,4 +313,51 @@ input, textarea, select {
 
 ::-webkit-scrollbar-thumb:hover {
     background: #777; /* Darker thumb on hover */
+}
+
+/* Adjust for small screens */
+@media (max-width: 320px) {
+    .btn {
+        padding: 0.4rem;
+        font-size: 0.9rem;
+    }
+    
+    .row {
+        margin-left: -5px;
+        margin-right: -5px;
+    }
+    
+    .col, [class*="col-"] {
+        padding-left: 5px;
+        padding-right: 5px;
+    }
+    
+    .nav-btn {
+        width: 34px;
+        height: 34px;
+    }
+}
+
+/* Nav buttons */
+.nav-btn {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border-radius: 4px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    margin-left: 5px;
+}
+
+.nav-buttons {
+    display: flex;
+}
+
+/* Fix container */
+.container-fluid {
+    padding: 0 0.5rem;
 }

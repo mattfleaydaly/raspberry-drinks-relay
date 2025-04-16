@@ -97,7 +97,7 @@ function initializeNavButtons() {
 }
 
 // Periodically update relay states
-setInterval(() => {
+function updateRelayStates() {
     fetch('/get-states')
         .then(response => response.json())
         .then(states => {
@@ -111,7 +111,7 @@ setInterval(() => {
             }
         })
         .catch(err => console.error('Error updating relay states:', err));
-}, 5000);
+}
 
 // Toggle relay
 function toggleRelay(relayName) {
@@ -142,6 +142,13 @@ document.addEventListener('DOMContentLoaded', () => {
     modalContents.forEach(content => {
         enableDragScroll(content);
     });
+    
+    // Initial update of relay states if we're on a page with relays
+    if (document.querySelector('.btn-relay')) {
+        updateRelayStates();
+        // Setup periodic updates
+        setInterval(updateRelayStates, 5000);
+    }
 });
 
 // Prevent default touch behavior to avoid unwanted scrolling
