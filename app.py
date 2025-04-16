@@ -252,16 +252,23 @@ def reset_network_settings():
 @app.route("/system-update-logs")
 def system_update_logs():
     def generate():
-        command = ["sudo", "apt-get", "update", "&&", "sudo", "apt-get", "full-upgrade", "-y"]
+        # Fix: Use shell=True and pass the command as a single string
         process = subprocess.Popen(
-            command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, shell=True
+            "sudo apt-get update && sudo apt-get full-upgrade -y",
+            stdout=subprocess.PIPE, 
+            stderr=subprocess.STDOUT,  # Redirect stderr to stdout to capture all output
+            text=True, 
+            shell=True
         )
+        
         for line in process.stdout:
-            yield f"data: {line}\n\n"
+            yield f"data: {line.strip()}\n\n"
+        
         process.wait()
         if process.returncode == 0:
             yield "data: Update completed successfully. Rebooting...\n\n"
-            run_command("sudo reboot")
+            # Use a separate thread to allow the response to complete before rebooting
+            threading.Thread(target=lambda: subprocess.call("sudo reboot", shell=True)).start()
         else:
             yield "data: Update failed. Check logs.\n\n"
 
