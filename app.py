@@ -23,6 +23,9 @@ relay_pins = {
 test_lock = Lock()
 test_in_progress = False
 
+# Constants
+DRINKS_CONFIG_FILE = "drinks.json"
+
 # Helper functions
 def run_command(command):
     """Run a shell command and return the output."""
@@ -50,6 +53,27 @@ def load_relay_states():
 def save_relay_states(states):
     with open("relay_states.json", "w") as f:
         json.dump(states, f)
+
+# Load drinks configuration
+def load_drinks_config():
+    if not os.path.exists(DRINKS_CONFIG_FILE):
+        # Create default empty drinks configuration
+        default_drinks = []
+        with open(DRINKS_CONFIG_FILE, "w") as f:
+            json.dump(default_drinks, f)
+        return default_drinks
+    
+    try:
+        with open(DRINKS_CONFIG_FILE, "r") as f:
+            return json.load(f)
+    except json.JSONDecodeError:
+        # If the file is corrupted, return empty list
+        return []
+
+# Save drinks configuration
+def save_drinks_config(drinks_data):
+    with open(DRINKS_CONFIG_FILE, "w") as f:
+        json.dump(drinks_data, f, indent=2)
 
 # Get local IP address
 def get_local_ip():
@@ -318,6 +342,118 @@ def shutdown_system():
     initialize_relay_states()
     os.system("sudo shutdown now")
     return jsonify({"status": "System is shutting down..."})
+
+# ----------------- NEW ROUTES -----------------
+
+@app.route("/drinks-config")
+def drinks_config():
+    """Render drinks configuration page."""
+    config = get_config()
+    return render_template("drinks-config.html", system_name=config["system_name"])
+
+@app.route("/make-drinks")
+def make_drinks():
+    """Render make drinks page."""
+    config = get_config()
+    drinks = load_drinks_config()
+    return render_template("make-drinks.html", system_name=config["system_name"], drinks=drinks)
+
+# ----------------- DRINKS API -----------------
+
+@app.route("/api/drinks", methods=["GET"])
+def get_drinks():
+    """Get all drinks configurations."""
+    try:
+        drinks = load_drinks_config()
+        return jsonify({"success": True, "drinks": drinks})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/drinks", methods=["POST"])
+def save_drinks():
+    """Save drinks configurations."""
+    try:
+        data = request.json
+        if not data or "drinks" not in data:
+            return jsonify({"success": False, "error": "Invalid request data"}), 400
+        
+        drinks = data["drinks"]
+        save_drinks_config(drinks)
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/drinks/<int:drink_id>", methods=["GET"])
+def get_drink(drink_id):
+    """Get a specific drink configuration."""
+    try:
+        drinks = load_drinks_config()
+        if drink_id < 0 or drink_id >= len(drinks):
+            return jsonify({"success": False, "error": "Drink not found"}), 404
+        
+        return jsonify({"success": True, "drink": drinks[drink_id]})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/make-drink/<int:drink_id>", methods=["POST"])
+def make_drink(drink_id):
+    """Make a drink by executing its relay sequence."""
+    global test_in_progress
+    
+    if test_in_progress:
+        return jsonify({"success": False, "error": "Test in progress, cannot make drink"}), 409
+    
+    try:
+        drinks = load_drinks_config()
+        if drink_id < 0 or drink_id >= len(drinks):
+            return jsonify({"success": False, "error": "Drink not found"}), 404
+        
+        drink = drinks[drink_id]
+        
+        # Create a thread to make the drink
+        def make_drink_thread():
+            global test_in_progress
+            try:
+                with test_lock:
+                    test_in_progress = True
+                    
+                    # Reset all relays to OFF first
+                    initialize_relay_states()
+                    time.sleep(0.5)  # Small delay after reset
+                    
+                    # Execute each step in the sequence
+                    for step in drink["steps"]:
+                        relay_name = f"Relay {step['relay']}"
+                        relay = relay_pins.get(relay_name)
+                        if relay:
+                            if step["action"] == "on":
+                                relay.on()
+                            else:
+                                relay.off()
+                            
+                            # Update state
+                            states = load_relay_states()
+                            states[relay_name] = relay.is_active
+                            save_relay_states(states)
+                            
+                            # Wait for specified time
+                            time.sleep(step["time"])
+                    
+                    # Turn all relays off at the end
+                    initialize_relay_states()
+            finally:
+                test_in_progress = False
+        
+        # Start the drink making process in a separate thread
+        threading.Thread(target=make_drink_thread).start()
+        
+        return jsonify({
+            "success": True, 
+            "message": f"Making {drink['name']}...",
+            "total_time": sum(step["time"] for step in drink["steps"])
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
 
 if __name__ == "__main__":
     initialize_relay_states()  # Reset states on startup

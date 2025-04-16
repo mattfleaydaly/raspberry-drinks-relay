@@ -1,16 +1,40 @@
 // Global variable to track all relays state
 let allRelaysOn = false;
+let testInProgress = false;
+
+// Log message function
+function logMessage(message) {
+    const logContent = document.getElementById('log-content');
+    if (logContent) {
+        const now = new Date();
+        const time = now.toLocaleTimeString();
+        logContent.innerHTML += `<div>${time} - ${message}</div>`;
+        
+        // Auto scroll to bottom
+        const logContainer = logContent.closest('.log-container');
+        if (logContainer) {
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+    }
+}
 
 // Add function to check test status
 function checkTestStatus() {
     return fetch('/test-in-progress')
         .then(response => response.json())
-        .then(data => data.testing);
+        .then(data => {
+            testInProgress = data.testing;
+            return testInProgress;
+        })
+        .catch(err => {
+            console.error('Error checking test status:', err);
+            return false;
+        });
 }
 
 // Utility function to show a modal
 function showModal(title, message) {
-    // Use existing Bootstrap modal instead of creating a new one
+    // Use existing Bootstrap modal
     const modal = document.getElementById('test-modal');
     const modalTitle = modal.querySelector('.modal-title');
     const modalBody = modal.querySelector('.modal-body p');
@@ -23,161 +47,206 @@ function showModal(title, message) {
     bsModal.show();
 }
 
-// Utility function to close the modal
-function closeModal() {
-    const modal = document.getElementById('test-modal');
-    const bsModal = bootstrap.Modal.getInstance(modal);
-    if (bsModal) {
-        bsModal.hide();
-        // Remove modal backdrop if it exists
-        const backdrop = document.querySelector('.modal-backdrop');
-        if (backdrop) {
-            backdrop.remove();
-        }
-        // Remove modal-open class from body
-        document.body.classList.remove('modal-open');
-        // Remove inline style from body
-        document.body.style.removeProperty('padding-right');
-    }
-}
-
 // Toggle individual relay
 function toggleRelay(relayName) {
-    checkTestStatus().then(testing => {
-        if (testing) {
-            showModal('Test in Progress', 'Please wait for the current test to complete.');
-            return;
-        }
-        
-        fetch(`/toggle/${relayName}`)
-            .then(response => {
-                if (response.status === 409) {
-                    throw new Error('Test in progress');
-                }
-                return response.json();
-            })
-            .then(data => {
-                const button = document.getElementById(relayName);
-                if (button) {
-                    button.className = `btn w-100 py-3 btn-relay ${data.state ? 'btn-success' : 'btn-danger'}`;
-                    button.innerText = `${relayName} - ${data.state ? 'ON' : 'OFF'}`;
-                }
-            })
-            .catch(err => {
-                console.error('Error toggling relay:', err);
-                if (err.message === 'Test in progress') {
-                    showModal('Error', 'Cannot toggle relay while a test is running.');
-                }
-            });
-    });
+    if (testInProgress) {
+        showModal('Test in Progress', 'Please wait for the current test to complete.');
+        return;
+    }
+    
+    // Provide immediate visual feedback
+    const button = document.getElementById(relayName);
+    if (button) {
+        button.classList.add('opacity-75');
+    }
+    
+    fetch(`/toggle/${relayName}`)
+        .then(response => {
+            if (response.status === 409) {
+                throw new Error('Test in progress');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (button) {
+                button.className = `btn w-100 btn-relay ${data.state ? 'btn-success' : 'btn-danger'}`;
+                button.innerHTML = `<i class="bi bi-${data.state ? 'toggle-on' : 'toggle-off'}"></i>${relayName}`;
+                button.classList.remove('opacity-75');
+                
+                logMessage(`${relayName} set to ${data.state ? 'ON' : 'OFF'}`);
+            }
+            updateAllRelaysState();
+        })
+        .catch(err => {
+            console.error('Error toggling relay:', err);
+            if (button) {
+                button.classList.remove('opacity-75');
+            }
+            if (err.message === 'Test in progress') {
+                showModal('Error', 'Cannot toggle relay while a test is running.');
+            }
+        });
 }
 
 // Toggle all relays
 function toggleAll() {
-    checkTestStatus().then(testing => {
-        if (testing) {
-            showModal('Test in Progress', 'Please wait for the current test to complete.');
-            return;
-        }
-        
-        const newState = !allRelaysOn;
-        fetch(`/toggle-all/${newState ? 'on' : 'off'}`)
-            .then(response => {
-                if (response.status === 409) {
-                    throw new Error('Test in progress');
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.status === 'success') {
-                    allRelaysOn = newState;
-                    updateToggleAllButton();
-                    updateRelayStates();
-                }
-            })
-            .catch(err => {
-                console.error('Error toggling all relays:', err);
-                if (err.message === 'Test in progress') {
-                    showModal('Error', 'Cannot toggle relays while a test is running.');
-                }
-            });
-    });
+    if (testInProgress) {
+        showModal('Test in Progress', 'Please wait for the current test to complete.');
+        return;
+    }
+    
+    const newState = !allRelaysOn;
+    const toggleAllButton = document.getElementById('toggleAllButton');
+    
+    if (toggleAllButton) {
+        toggleAllButton.classList.add('opacity-75');
+    }
+    
+    fetch(`/toggle-all/${newState ? 'on' : 'off'}`)
+        .then(response => {
+            if (response.status === 409) {
+                throw new Error('Test in progress');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.status === 'success') {
+                allRelaysOn = newState;
+                updateToggleAllButton();
+                updateRelayStates();
+                logMessage(`All relays turned ${newState ? 'ON' : 'OFF'}`);
+            }
+            if (toggleAllButton) {
+                toggleAllButton.classList.remove('opacity-75');
+            }
+        })
+        .catch(err => {
+            console.error('Error toggling all relays:', err);
+            if (toggleAllButton) {
+                toggleAllButton.classList.remove('opacity-75');
+            }
+            if (err.message === 'Test in progress') {
+                showModal('Error', 'Cannot toggle relays while a test is running.');
+            }
+        });
 }
 
 // Update the toggle all button appearance
 function updateToggleAllButton() {
     const button = document.getElementById('toggleAllButton');
     if (button) {
-        button.innerText = `All ${allRelaysOn ? 'OFF' : 'ON'}`;
+        button.innerHTML = `<i class="bi bi-toggles"></i>All ${allRelaysOn ? 'OFF' : 'ON'}`;
     }
 }
 
 // Time test function
 function timeTest() {
-    checkTestStatus().then(testing => {
-        if (testing) {
-            showModal('Test in Progress', 'Please wait for the current test to complete.');
-            return;
-        }
-        
-        disableRelayButtons(true); // Disable relay buttons during the test
-        showModal('Time Test', 'Running time test...'); // Show initial modal
-        
-        fetch('/time-test')
-            .then(response => {
-                if (response.status === 409) {
-                    throw new Error('Test in progress');
-                }
-                return response.json();
-            })
-            .then(data => {
-                disableRelayButtons(false); // Re-enable relay buttons after the test
-                showModal('Time Test Completed', data.status);
-            })
-            .catch(err => {
-                console.error('Error performing time test:', err);
-                disableRelayButtons(false);
-                if (err.message === 'Test in progress') {
-                    showModal('Error', 'Another test is currently running. Please wait.');
-                } else {
-                    showModal('Error', 'Failed to complete time test');
-                }
-            });
-    });
+    if (testInProgress) {
+        showModal('Test in Progress', 'Please wait for the current test to complete.');
+        return;
+    }
+    
+    testInProgress = true;
+    disableRelayButtons(true); // Disable relay buttons during the test
+    
+    // Visual feedback
+    const button = document.getElementById('timeTestBtn');
+    if (button) {
+        button.classList.add('opacity-75');
+    }
+    
+    showModal('Time Test', 'Running time test...'); // Show initial modal
+    logMessage('Starting time test...');
+    
+    fetch('/time-test')
+        .then(response => {
+            if (response.status === 409) {
+                throw new Error('Test in progress');
+            }
+            return response.json();
+        })
+        .then(data => {
+            testInProgress = false;
+            disableRelayButtons(false); // Re-enable relay buttons after the test
+            showModal('Time Test Completed', data.status);
+            logMessage(`Time test completed: ${data.status}`);
+            
+            if (button) {
+                button.classList.remove('opacity-75');
+            }
+        })
+        .catch(err => {
+            console.error('Error performing time test:', err);
+            testInProgress = false;
+            disableRelayButtons(false);
+            
+            if (button) {
+                button.classList.remove('opacity-75');
+            }
+            
+            if (err.message === 'Test in progress') {
+                showModal('Error', 'Another test is currently running. Please wait.');
+                logMessage('Time test failed: Another test is running');
+            } else {
+                showModal('Error', 'Failed to complete time test');
+                logMessage('Time test failed: An error occurred');
+            }
+        });
 }
 
 // Self-test function
 function selfTest() {
-    checkTestStatus().then(testing => {
-        if (testing) {
-            showModal('Test in Progress', 'Please wait for the current test to complete.');
-            return;
-        }
-        
-        disableRelayButtons(true); // Disable relay buttons during the test
-        showModal('Self Test', 'Running self test (10 seconds)...'); // Show initial modal
-        
-        fetch('/self-test')
-            .then(response => {
-                if (response.status === 409) {
-                    throw new Error('Test in progress');
-                }
-                return response.json();
-            })
-            .then(data => {
-                disableRelayButtons(false); // Re-enable relay buttons after the test
-                showModal('Self Test Completed', data.status);
-            })
-            .catch(err => {
-                console.error('Error performing self-test:', err);
-                disableRelayButtons(false);
-                if (err.message === 'Test in progress') {
-                    showModal('Error', 'Another test is currently running. Please wait.');
-                } else {
-                    showModal('Error', 'Failed to complete self test');
-                }
-            });
-    });
+    if (testInProgress) {
+        showModal('Test in Progress', 'Please wait for the current test to complete.');
+        return;
+    }
+    
+    testInProgress = true;
+    disableRelayButtons(true); // Disable relay buttons during the test
+    
+    // Visual feedback
+    const button = document.getElementById('selfTestBtn');
+    if (button) {
+        button.classList.add('opacity-75');
+    }
+    
+    showModal('Self Test', 'Running self test (10 seconds)...'); // Show initial modal
+    logMessage('Starting self test...');
+    
+    fetch('/self-test')
+        .then(response => {
+            if (response.status === 409) {
+                throw new Error('Test in progress');
+            }
+            return response.json();
+        })
+        .then(data => {
+            testInProgress = false;
+            disableRelayButtons(false); // Re-enable relay buttons after the test
+            showModal('Self Test Completed', data.status);
+            logMessage(`Self test completed: ${data.status}`);
+            
+            if (button) {
+                button.classList.remove('opacity-75');
+            }
+        })
+        .catch(err => {
+            console.error('Error performing self-test:', err);
+            testInProgress = false;
+            disableRelayButtons(false);
+            
+            if (button) {
+                button.classList.remove('opacity-75');
+            }
+            
+            if (err.message === 'Test in progress') {
+                showModal('Error', 'Another test is currently running. Please wait.');
+                logMessage('Self test failed: Another test is running');
+            } else {
+                showModal('Error', 'Failed to complete self test');
+                logMessage('Self test failed: An error occurred');
+            }
+        });
 }
 
 // Disable or enable relay buttons
@@ -201,38 +270,72 @@ function updateRelayStates() {
             for (const [relayName, state] of Object.entries(states)) {
                 const button = document.getElementById(relayName);
                 if (button) {
-                    // Update with consistent Bootstrap classes
-                    button.className = `btn w-100 py-3 btn-relay ${state ? 'btn-success' : 'btn-danger'}`;
-                    button.innerText = `${relayName} - ${state ? 'ON' : 'OFF'}`;
+                    button.className = `btn w-100 btn-relay ${state ? 'btn-success' : 'btn-danger'}`;
+                    button.innerHTML = `<i class="bi bi-${state ? 'toggle-on' : 'toggle-off'}"></i>${relayName}`;
                 }
             }
-
-            // Update all relays state based on whether all relays are on
-            allRelaysOn = Object.values(states).every(state => state === true);
-            updateToggleAllButton();
+            updateAllRelaysState();
         })
         .catch(err => console.error('Error updating relay states:', err));
 }
 
-// Periodically update relay states (for ongoing tests)
-setInterval(updateRelayStates, 1000);
-
-// Initialize Bootstrap components and add event listeners
-document.addEventListener('DOMContentLoaded', () => {
-    // Initialize all modals
-    document.querySelectorAll('.modal').forEach(modalElement => {
-        new bootstrap.Modal(modalElement);
-    });
-
-    // Add click event listeners using more specific selectors
-    const timeTestButton = document.querySelector('button[onclick="timeTest()"]');
-    const selfTestButton = document.querySelector('button[onclick="selfTest()"]');
-    const toggleAllButton = document.querySelector('button[onclick="toggleAll()"]');
-    
-    if (timeTestButton) timeTestButton.addEventListener('click', timeTest);
-    if (selfTestButton) selfTestButton.addEventListener('click', selfTest);
-    if (toggleAllButton) toggleAllButton.addEventListener('click', toggleAll);
-
-    // Initialize toggle all button state
+// Update whether all relays are on
+function updateAllRelaysState() {
+    // Get all relay buttons
+    const relayButtons = document.querySelectorAll('.btn-relay');
+    // Check if all of them have the 'btn-success' class
+    allRelaysOn = Array.from(relayButtons).every(button => button.classList.contains('btn-success'));
     updateToggleAllButton();
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+    // Check test status initially
+    checkTestStatus();
+    
+    // Initialize toggle all button state
+    updateRelayStates();
+    
+    // Add event listeners with proper event handling
+    const timeTestBtn = document.getElementById('timeTestBtn');
+    const selfTestBtn = document.getElementById('selfTestBtn');
+    const toggleAllBtn = document.getElementById('toggleAllButton');
+    
+    if (timeTestBtn) {
+        timeTestBtn.addEventListener('click', function() {
+            // Only proceed if the button isn't handling a previous click
+            if (!this.classList.contains('opacity-75') && !testInProgress) {
+                timeTest();
+            }
+        });
+    }
+    
+    if (selfTestBtn) {
+        selfTestBtn.addEventListener('click', function() {
+            // Only proceed if the button isn't handling a previous click
+            if (!this.classList.contains('opacity-75') && !testInProgress) {
+                selfTest();
+            }
+        });
+    }
+    
+    if (toggleAllBtn) {
+        toggleAllBtn.addEventListener('click', function() {
+            // Only proceed if the button isn't handling a previous click
+            if (!this.classList.contains('opacity-75') && !testInProgress) {
+                toggleAll();
+            }
+        });
+    }
+    
+    // Periodically update relay states and check test status
+    setInterval(() => {
+        if (!testInProgress) {
+            updateRelayStates();
+            checkTestStatus();
+        }
+    }, 2000);
+    
+    // Log initial state
+    logMessage('Test mode initialized - ready for operation');
 });

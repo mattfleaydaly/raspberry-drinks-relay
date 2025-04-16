@@ -105,8 +105,8 @@ function updateRelayStates() {
                 const button = document.getElementById(relay);
                 if (button) {
                     // Update with Bootstrap classes
-                    button.className = `btn w-100 py-3 btn-relay ${state ? 'btn-success' : 'btn-danger'}`;
-                    button.innerText = `${relay} - ${state ? 'ON' : 'OFF'}`;
+                    button.className = `btn w-100 btn-relay ${state ? 'btn-success' : 'btn-danger'}`;
+                    button.innerHTML = `<i class="bi bi-${state ? 'toggle-on' : 'toggle-off'}"></i>${relay}`;
                 }
             }
         })
@@ -115,15 +115,29 @@ function updateRelayStates() {
 
 // Toggle relay
 function toggleRelay(relayName) {
+    // Provide immediate visual feedback
+    const button = document.getElementById(relayName);
+    if (button) {
+        button.classList.add('opacity-75');
+    }
+    
     fetch(`/toggle/${relayName}`)
         .then(response => response.json())
         .then(data => {
             const button = document.getElementById(relayName);
             // Update with Bootstrap classes
-            button.className = `btn w-100 py-3 btn-relay ${data.state ? 'btn-success' : 'btn-danger'}`;
-            button.innerText = `${relayName} - ${data.state ? 'ON' : 'OFF'}`;
+            if (button) {
+                button.className = `btn w-100 btn-relay ${data.state ? 'btn-success' : 'btn-danger'}`;
+                button.innerHTML = `<i class="bi bi-${data.state ? 'toggle-on' : 'toggle-off'}"></i>${relayName}`;
+                button.classList.remove('opacity-75');
+            }
         })
-        .catch(err => console.error(`Error toggling relay ${relayName}:`, err));
+        .catch(err => {
+            console.error(`Error toggling relay ${relayName}:`, err);
+            if (button) {
+                button.classList.remove('opacity-75');
+            }
+        });
 }
 
 // Enable drag scrolling on page load

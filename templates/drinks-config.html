@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+{% block title %}Drinks Configuration{% endblock %}
+{% block header %}Drinks Config{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <!-- Drinks List -->
+    <div class="row g-1">
+        <div class="col-12 mb-1">
+            <small class="text-muted">Saved Drinks</small>
+        </div>
+        
+        <div class="col-12 mb-3">
+            <div class="card">
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush" id="drinksList">
+                        <!-- Drinks will be populated here via JavaScript -->
+                        <div class="text-center p-3 text-muted" id="no-drinks-message">
+                            <i class="bi bi-cup"></i> No drinks configured yet
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Action buttons -->
+        <div class="col-6">
+            <button id="addDrinkBtn" class="btn btn-success w-100">
+                <i class="bi bi-plus-circle"></i> Add Drink
+            </button>
+        </div>
+        <div class="col-6">
+            <button id="importExportBtn" class="btn btn-primary w-100">
+                <i class="bi bi-arrow-down-up"></i> Import/Export
+            </button>
+        </div>
+    </div>
+    
+    <!-- Edit Drink Modal -->
+    <div class="modal fade" id="drinkModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content bg-dark text-white">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title" id="drinkModalTitle">Edit Drink</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="overflow-y: auto; max-height: 250px; -webkit-overflow-scrolling: touch;">
+                    <form id="drinkForm">
+                        <input type="hidden" id="drinkId">
+                        
+                        <!-- Drink Name -->
+                        <div class="mb-3">
+                            <label for="drinkName" class="form-label">Drink Name</label>
+                            <input type="text" class="form-control" id="drinkName" required>
+                        </div>
+                        
+                        <!-- Icon Selection -->
+                        <div class="mb-3">
+                            <label for="iconSelector" class="form-label">Icon</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-dark text-white">
+                                    <i id="selectedIconPreview" class="bi bi-cup"></i>
+                                </span>
+                                <select class="form-select" id="iconSelector">
+                                    <option value="bi-cup">Cup</option>
+                                    <option value="bi-cup-hot">Cup Hot</option>
+                                    <option value="bi-cup-straw">Cup Straw</option>
+                                    <option value="bi-cup-fill">Cup Fill</option>
+                                    <option value="bi-droplet">Droplet</option>
+                                    <option value="bi-droplet-fill">Droplet Fill</option>
+                                    <option value="bi-water">Water</option>
+                                    <option value="bi-magic">Magic</option>
+                                </select>
+                                <button type="button" class="btn btn-outline-secondary" id="moreIconsBtn">
+                                    <i class="bi bi-three-dots"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Relay Sequence -->
+                        <div class="mb-3">
+                            <label class="form-label">Relay Sequence</label>
+                            <div id="relaySteps">
+                                <!-- Relay steps will be added here -->
+                            </div>
+                            <button type="button" class="btn btn-outline-light w-100 mt-2" id="addStepBtn">
+                                <i class="bi bi-plus"></i> Add Step
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger me-auto d-none" id="deleteDrinkBtn">Delete</button>
+                    <button type="button" class="btn btn-primary" id="saveDrinkBtn">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Icon Selection Modal -->
+    <div class="modal fade" id="iconModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content bg-dark text-white">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title">Select Icon</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="overflow-y: auto; max-height: 250px; -webkit-overflow-scrolling: touch;">
+                    <div class="icon-grid" id="iconGrid">
+                        <!-- Icons will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Import/Export Modal -->
+    <div class="modal fade" id="importExportModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content bg-dark text-white">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title">Import/Export Drinks</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="overflow-y: auto; max-height: 250px; -webkit-overflow-scrolling: touch;">
+                    <div class="mb-3">
+                        <label for="exportData" class="form-label">Export Data</label>
+                        <textarea class="form-control" id="exportData" rows="5" readonly></textarea>
+                    </div>
+                    <button class="btn btn-outline-light w-100 mb-3" id="copyDataBtn">
+                        <i class="bi bi-clipboard"></i> Copy to Clipboard
+                    </button>
+                    
+                    <div class="mb-3">
+                        <label for="importData" class="form-label">Import Data</label>
+                        <textarea class="form-control" id="importData" rows="5" placeholder="Paste JSON data here"></textarea>
+                    </div>
+                    <button class="btn btn-outline-light w-100" id="importDataBtn">
+                        <i class="bi bi-upload"></i> Import Data
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Time Selector Modal -->
+    <div class="modal fade" id="timeModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark text-white">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title">Set Time (seconds)</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="time-picker">
+                        <div class="d-flex justify-content-center align-items-center mb-3">
+                            <button id="timeDownBtn" class="btn btn-outline-light btn-lg">
+                                <i class="bi bi-dash-circle"></i>
+                            </button>
+                            <span id="timeValue" class="mx-4 fs-1">5</span>
+                            <button id="timeUpBtn" class="btn btn-outline-light btn-lg">
+                                <i class="bi bi-plus-circle"></i>
+                            </button>
+                        </div>
+                        <input type="range" class="form-range" min="1" max="30" value="5" id="timeSlider">
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="setTimeBtn">Set</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/drinks-config.js"></script>
+<style>
+.icon-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+}
+
+.icon-item {
+    border: 1px solid #444;
+    border-radius: 6px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.icon-item:hover, .icon-item.selected {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: #0d6efd;
+}
+
+.icon-item i {
+    font-size: 1.5rem;
+}
+
+.list-group-item-action {
+    background-color: #1e1e1e;
+    color: white;
+    border-color: #444;
+}
+
+.list-group-item-action:hover {
+    background-color: #282c34;
+    color: white;
+}
+
+.relay-step {
+    border: 1px solid #444;
+    border-radius: 6px;
+    padding: 8px;
+    margin-bottom: 8px;
+    background-color: rgba(0, 0, 0, 0.2);
+}
+
+.relay-step-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.time-picker {
+    text-align: center;
+}
+
+/* Improved scrolling for modals */
+.modal-dialog-scrollable .modal-content {
+    max-height: 90vh;
+}
+
+.modal-body {
+    -webkit-overflow-scrolling: touch;
+    overflow-y: auto;
+    touch-action: pan-y;
+}
+</style>
+{% endblock %}

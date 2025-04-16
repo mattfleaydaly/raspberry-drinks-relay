@@ -2,30 +2,56 @@
 {% block title %}Test Mode{% endblock %}
 {% block header %}Test Mode{% endblock %}
 {% block content %}
-<div class="container-fluid py-4">
-    <div class="row g-3">
+<div class="container-fluid">
+    <!-- Warning Banner -->
+    <div class="alert alert-warning mb-3">
+        <i class="bi bi-exclamation-triangle me-1"></i> Test Mode: Manual Relay Control
+    </div>
+    
+    <div class="row g-1">
+        <!-- Relay Controls -->
+        <div class="col-12 mb-1">
+            <small class="text-muted">Relay Controls</small>
+        </div>
+        
         {% for relay_name, state in relays.items() %}
-        <div class="col-6 col-md-4 col-lg-3">
+        <div class="col-4">
             <button id="{{ relay_name }}" 
-                    class="btn w-100 py-3 btn-relay {{ 'btn-success' if state else 'btn-danger' }}" 
+                    class="btn btn-relay {{ 'btn-success' if state else 'btn-danger' }} w-100" 
                     onclick="toggleRelay('{{ relay_name }}')">
-                {{ relay_name }} - {{ 'ON' if state else 'OFF' }}
+                <i class="bi bi-{{ 'toggle-on' if state else 'toggle-off' }}"></i>{{ relay_name }}
             </button>
         </div>
         {% endfor %}
-    </div>
-    
-    <div class="row g-3 mt-3">
-        <div class="col-6 col-md-4 col-lg-3">
-            <button class="btn btn-primary w-100 py-3" onclick="timeTest()">Time Test</button>
+        
+        <!-- Test Actions -->
+        <div class="col-12 mb-1 mt-3">
+            <small class="text-muted">Test Functions</small>
         </div>
-        <div class="col-6 col-md-4 col-lg-3">
-            <button class="btn btn-primary w-100 py-3" onclick="selfTest()">Self Test</button>
+        
+        <div class="col-4">
+            <button id="timeTestBtn" class="btn btn-primary w-100">
+                <i class="bi bi-clock"></i>Time Test
+            </button>
         </div>
-        <div class="col-6 col-md-4 col-lg-3">
-            <button id="toggleAllButton" 
-                    class="btn btn-warning w-100 py-3" 
-                    onclick="toggleAll()">All ON</button>
+        <div class="col-4">
+            <button id="selfTestBtn" class="btn btn-info w-100">
+                <i class="bi bi-gear"></i>Self Test
+            </button>
+        </div>
+        <div class="col-4">
+            <button id="toggleAllButton" class="btn btn-warning w-100">
+                <i class="bi bi-toggles"></i>All ON
+            </button>
+        </div>
+        
+        <!-- Log -->
+        <div class="col-12 mt-3">
+            <div class="log-container" style="height: 150px;">
+                <div id="log-content">
+                    System test mode initialized...
+                </div>
+            </div>
         </div>
     </div>
 </div>
