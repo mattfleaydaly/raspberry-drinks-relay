@@ -67,19 +67,26 @@ function performSystemUpdate() {
     const bsUpdateModal = new bootstrap.Modal(updateModal);
     bsUpdateModal.show();
     
+    // Create EventSource for streaming update logs
     const eventSource = new EventSource('/system-update-logs');
     
     eventSource.onmessage = (event) => {
-        const logEntry = document.createElement('div');
-        logEntry.textContent = event.data;
-        updateLogs.appendChild(logEntry);
-        updateLogs.scrollTop = updateLogs.scrollHeight; // Auto-scroll to the latest log
+        // Append the new log line
+        updateLogs.innerHTML += event.data + "\n";
+        // Auto-scroll to the latest log
+        updateLogs.scrollTop = updateLogs.scrollHeight;
     };
     
     eventSource.onerror = () => {
+        // Close the connection when it errors out (which might be normal at the end)
         eventSource.close();
-        updateLogs.innerHTML += "System update completed or an error occurred.\n";
-        updateLogs.innerHTML += "System will reboot automatically.\n";
+        
+        // Add a final message if it's not already there
+        if (!updateLogs.innerHTML.includes("System update completed") && 
+            !updateLogs.innerHTML.includes("Update failed")) {
+            updateLogs.innerHTML += "Connection closed. The system may be rebooting.\n";
+        }
+        
         updateLogs.scrollTop = updateLogs.scrollHeight;
     };
 }
