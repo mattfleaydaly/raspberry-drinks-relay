@@ -1,3 +1,5 @@
+// Complete settings.js with WiFi fixes and all existing functionality
+
 // Reboot or shutdown the system
 function controlSystem(action) {
     if (confirm(`Are you sure you want to ${action} the system?`)) {
@@ -100,13 +102,15 @@ function closeUpdateModal() {
     }
 }
 
-// Open WiFi Config Modal
+// UPDATED WiFi Functions - Enhanced with NetworkManager support
+
+// Open WiFi Config Modal with NetworkManager status check
 function openWiFiConfig() {
     const modal = document.getElementById('wifi-modal');
     const bsModal = new bootstrap.Modal(modal);
     
-    // Scan for networks when opening the modal
-    scanForNetworks();
+    // Check NetworkManager status first
+    checkNetworkManagerStatus();
     
     bsModal.show();
     
@@ -126,6 +130,546 @@ function closeWiFiModal() {
     }
 }
 
+// Check NetworkManager status and availability
+function checkNetworkManagerStatus() {
+    const statusElement = document.getElementById('wifi-status');
+    
+    if (statusElement) {
+        statusElement.innerHTML = `
+            <div class="alert alert-info mb-0">
+                <div class="d-flex align-items-center">
+                    <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                    <span>Checking NetworkManager status...</span>
+                </div>
+            </div>
+        `;
+    }
+    
+    fetch('/wifi-status')
+        .then(response => response.json())
+        .then(data => {
+            if (data.error && (data.error.includes("NetworkManager") || data.error.includes("Cannot check"))) {
+                if (statusElement) {
+                    statusElement.innerHTML = `
+                        <div class="alert alert-warning mb-3">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <i class="bi bi-exclamation-triangle me-2"></i>
+                                    <strong>NetworkManager not configured</strong>
+                                    <div class="small">WiFi functionality requires NetworkManager</div>
+                                </div>
+                                <button class="btn btn-sm btn-outline-warning" onclick="enableNetworkManager()">
+                                    Enable
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }
+            } else {
+                updateWiFiStatus();
+                // Auto-scan for networks if NetworkManager is working
+                setTimeout(() => scanForNetworks(), 500);
+            }
+        })
+        .catch(err => {
+            console.error('Error checking NetworkManager status:', err);
+            if (statusElement) {
+                statusElement.innerHTML = `
+                    <div class="alert alert-danger mb-0">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        <strong>Error checking network status</strong>
+                        <div class="small">Please check system configuration</div>
+                    </div>
+                `;
+            }
+        });
+}
+
+// Enable NetworkManager if not properly configured
+function enableNetworkManager() {
+    const statusElement = document.getElementById('wifi-status');
+    
+    if (statusElement) {
+        statusElement.innerHTML = `
+            <div class="alert alert-info mb-0">
+                <div class="d-flex align-items-center">
+                    <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                    <span>Enabling NetworkManager...</span>
+                </div>
+            </div>
+        `;
+    }
+    
+    fetch('/enable-networkmanager', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                if (statusElement) {
+                    statusElement.innerHTML = `
+                        <div class="alert alert-success mb-3">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <i class="bi bi-check-circle me-2"></i>
+                                    <strong>NetworkManager enabled</strong>
+                                    <div class="small">${data.message}</div>
+                                </div>
+                                <button class="btn btn-sm btn-outline-success" onclick="controlSystem('reboot')">
+                                    Reboot Now
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }
+            } else {
+                if (statusElement) {
+                    statusElement.innerHTML = `
+                        <div class="alert alert-danger mb-0">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            <strong>Failed to enable NetworkManager</strong>
+                            <div class="small">${data.error}</div>
+                        </div>
+                    `;
+                }
+            }
+        })
+        .catch(err => {
+            console.error('Error enabling NetworkManager:', err);
+            if (statusElement) {
+                statusElement.innerHTML = `
+                    <div class="alert alert-danger mb-0">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        <strong>Error enabling NetworkManager</strong>
+                        <div class="small">Please try manual configuration</div>
+                    </div>
+                `;
+            }
+        });
+}
+
+// Enhanced WiFi network scanning with better error handling
+function scanForNetworks() {
+    const networksContainer = document.getElementById('networks-container');
+    const scanBtn = document.getElementById('scan-networks-btn');
+    
+    if (networksContainer) {
+        networksContainer.innerHTML = `
+            <div class="text-center py-4">
+                <div class="spinner-border text-primary mb-3" role="status"></div>
+                <p class="mb-2">Scanning for networks...</p>
+                <small class="text-muted">This may take a few seconds</small>
+            </div>
+        `;
+    }
+    
+    if (scanBtn) {
+        scanBtn.disabled = true;
+        scanBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Scanning...';
+    }
+    
+    fetch('/scan-wifi-networks')
+        .then(response => response.json())
+        .then(data => {
+            if (scanBtn) {
+                scanBtn.disabled = false;
+                scanBtn.innerHTML = '<i class="bi bi-arrow-repeat"></i> Scan Again';
+            }
+            
+            if (data.success && networksContainer) {
+                if (data.networks.length === 0) {
+                    networksContainer.innerHTML = `
+                        <div class="alert alert-warning">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-wifi-off me-2 fs-4"></i>
+                                <div>
+                                    <strong>No networks found</strong>
+                                    <div class="small">Make sure WiFi is enabled and try scanning again</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                let html = '<div class="list-group">';
+                
+                data.networks.forEach(network => {
+                    const signalStrength = getSignalStrengthIcon(network.signal);
+                    const securityIcon = network.security ? 
+                        '<i class="bi bi-lock-fill ms-2 text-warning"></i>' : 
+                        '<i class="bi bi-unlock ms-2 text-success"></i>';
+                    
+                    html += `
+                        <button type="button" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center bg-dark text-white border-secondary hover-highlight" 
+                                onclick="connectToNetwork('${escapeHtml(network.ssid)}', ${network.security})"
+                                style="border-radius: 8px; margin-bottom: 4px; transition: all 0.2s ease;">
+                            <div class="d-flex align-items-center">
+                                <span class="me-2 fw-medium">${escapeHtml(network.ssid)}</span>
+                                ${securityIcon}
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <small class="text-muted me-2">${network.signal}%</small>
+                                ${signalStrength}
+                            </div>
+                        </button>
+                    `;
+                });
+                
+                html += '</div>';
+                networksContainer.innerHTML = html;
+            } else {
+                const errorMsg = data.error || 'Failed to scan networks';
+                let actionButton = '';
+                
+                if (errorMsg.includes('NetworkManager')) {
+                    actionButton = '<button class="btn btn-sm btn-outline-warning mt-2" onclick="enableNetworkManager()">Enable NetworkManager</button>';
+                } else {
+                    actionButton = '<button class="btn btn-sm btn-outline-light mt-2" onclick="scanForNetworks()">Try Again</button>';
+                }
+                
+                networksContainer.innerHTML = `
+                    <div class="alert alert-danger">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="bi bi-exclamation-triangle me-2 fs-4"></i>
+                            <div>
+                                <strong>Scan Failed</strong>
+                                <div class="small">${errorMsg}</div>
+                            </div>
+                        </div>
+                        ${actionButton}
+                    </div>
+                `;
+            }
+            
+            // Fix scrolling after updating content
+            const modalBody = document.querySelector('#wifi-modal .modal-body');
+            if (modalBody) {
+                setupModalBodyScroll(modalBody);
+            }
+        })
+        .catch(err => {
+            console.error('Error scanning networks:', err);
+            if (networksContainer) {
+                networksContainer.innerHTML = `
+                    <div class="alert alert-danger">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="bi bi-exclamation-triangle me-2 fs-4"></i>
+                            <div>
+                                <strong>Network Scan Error</strong>
+                                <div class="small">An error occurred while scanning</div>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-light mt-2" onclick="scanForNetworks()">Try Again</button>
+                    </div>
+                `;
+            }
+            if (scanBtn) {
+                scanBtn.disabled = false;
+                scanBtn.innerHTML = '<i class="bi bi-arrow-repeat"></i> Scan Again';
+            }
+        });
+}
+
+// Enhanced signal strength icon with percentage-based logic
+function getSignalStrengthIcon(signal) {
+    // Handle both dBm (-30 to -90) and percentage (0-100) formats
+    let percentage;
+    if (signal < 0) {
+        // Convert dBm to percentage (rough approximation)
+        percentage = Math.max(0, Math.min(100, 2 * (signal + 100)));
+    } else {
+        percentage = signal;
+    }
+    
+    if (percentage >= 75) {
+        return '<i class="bi bi-wifi text-success fs-5"></i>';
+    } else if (percentage >= 50) {
+        return '<i class="bi bi-wifi text-primary fs-5"></i>';
+    } else if (percentage >= 25) {
+        return '<i class="bi bi-wifi text-warning fs-5"></i>';
+    } else {
+        return '<i class="bi bi-wifi text-danger fs-5"></i>';
+    }
+}
+
+// HTML escaping function to prevent XSS
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Enhanced network connection with better UI
+function connectToNetwork(ssid, requiresPassword) {
+    const networksContainer = document.getElementById('networks-container');
+    
+    if (requiresPassword) {
+        // Show enhanced password input form
+        if (networksContainer) {
+            networksContainer.innerHTML = `
+                <div class="card bg-dark border-secondary" style="border-radius: 12px;">
+                    <div class="card-header d-flex justify-content-between align-items-center" style="background: rgba(255, 255, 255, 0.05); border-radius: 12px 12px 0 0;">
+                        <div>
+                            <strong>Connect to "${escapeHtml(ssid)}"</strong>
+                            <div class="small text-muted">
+                                <i class="bi bi-lock-fill me-1"></i>Secured Network
+                            </div>
+                        </div>
+                        <i class="bi bi-wifi text-primary fs-4"></i>
+                    </div>
+                    <div class="card-body">
+                        <form id="wifi-password-form" onsubmit="event.preventDefault(); submitWiFiConnection('${escapeHtml(ssid)}');">
+                            <div class="mb-3">
+                                <label for="wifi-password" class="form-label">Network Password</label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="wifi-password" required 
+                                           placeholder="Enter network password" autocomplete="new-password">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility()" title="Show/Hide Password">
+                                        <i class="bi bi-eye" id="password-toggle-icon"></i>
+                                    </button>
+                                </div>
+                                <div class="form-text text-muted">
+                                    <small><i class="bi bi-info-circle me-1"></i>Password will be saved for automatic reconnection</small>
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-between gap-2">
+                                <button type="button" class="btn btn-secondary flex-fill" onclick="scanForNetworks()">
+                                    <i class="bi bi-arrow-left me-1"></i>Back
+                                </button>
+                                <button type="submit" class="btn btn-primary flex-fill">
+                                    <i class="bi bi-wifi me-1"></i>Connect
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+            
+            // Focus on password input after a brief delay
+            setTimeout(() => {
+                const passwordInput = document.getElementById('wifi-password');
+                if (passwordInput) {
+                    passwordInput.focus();
+                }
+            }, 200);
+        }
+    } else {
+        // Connect directly to open network
+        connectWithPassword(ssid, '');
+    }
+    
+    // Fix scrolling after updating content
+    const modalBody = document.querySelector('#wifi-modal .modal-body');
+    if (modalBody) {
+        setupModalBodyScroll(modalBody);
+    }
+}
+
+// Toggle password visibility
+function togglePasswordVisibility() {
+    const passwordInput = document.getElementById('wifi-password');
+    const toggleIcon = document.getElementById('password-toggle-icon');
+    
+    if (passwordInput && toggleIcon) {
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            toggleIcon.className = 'bi bi-eye-slash';
+        } else {
+            passwordInput.type = 'password';
+            toggleIcon.className = 'bi bi-eye';
+        }
+    }
+}
+
+// Submit WiFi connection with password validation
+function submitWiFiConnection(ssid) {
+    const passwordInput = document.getElementById('wifi-password');
+    const password = passwordInput ? passwordInput.value : '';
+    
+    if (!password.trim()) {
+        // Highlight the input field
+        if (passwordInput) {
+            passwordInput.classList.add('is-invalid');
+            passwordInput.focus();
+            setTimeout(() => {
+                passwordInput.classList.remove('is-invalid');
+            }, 3000);
+        }
+        return;
+    }
+    
+    connectWithPassword(ssid, password);
+}
+
+// Enhanced connection process with detailed feedback
+function connectWithPassword(ssid, password) {
+    const networksContainer = document.getElementById('networks-container');
+    
+    if (networksContainer) {
+        networksContainer.innerHTML = `
+            <div class="text-center py-4">
+                <div class="mb-3">
+                    <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;"></div>
+                    <h6 class="mb-2">Connecting to "${escapeHtml(ssid)}"</h6>
+                    <p class="text-muted mb-0">Please wait while we establish the connection...</p>
+                </div>
+                <div class="progress" style="height: 6px;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 100%"></div>
+                </div>
+            </div>
+        `;
+    }
+    
+    fetch('/connect-wifi', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            ssid: ssid,
+            password: password
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success && networksContainer) {
+            networksContainer.innerHTML = `
+                <div class="alert alert-success" style="border-radius: 12px;">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="bi bi-check-circle-fill me-3 text-success" style="font-size: 2rem;"></i>
+                        <div>
+                            <h6 class="mb-1">Successfully Connected!</h6>
+                            <small class="text-muted">${data.message || 'Connection established'}</small>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-sm btn-outline-success" onclick="updateWiFiStatus()">
+                            <i class="bi bi-arrow-repeat me-1"></i>Check Status
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="scanForNetworks()">
+                            <i class="bi bi-wifi me-1"></i>Scan Networks
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            // Update the status at the top after a brief delay
+            setTimeout(updateWiFiStatus, 2000);
+            
+        } else if (networksContainer) {
+            const errorMsg = data.error || 'Failed to connect to network';
+            networksContainer.innerHTML = `
+                <div class="alert alert-danger" style="border-radius: 12px;">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="bi bi-exclamation-triangle-fill me-3 text-danger" style="font-size: 2rem;"></i>
+                        <div>
+                            <h6 class="mb-1">Connection Failed</h6>
+                            <small class="text-muted">${errorMsg}</small>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-sm btn-outline-light" onclick="connectToNetwork('${escapeHtml(ssid)}', ${password ? 'true' : 'false'})">
+                            <i class="bi bi-arrow-repeat me-1"></i>Try Again
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="scanForNetworks()">
+                            <i class="bi bi-list me-1"></i>Back to Networks
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Fix scrolling after updating content
+        const modalBody = document.querySelector('#wifi-modal .modal-body');
+        if (modalBody) {
+            setupModalBodyScroll(modalBody);
+        }
+    })
+    .catch(err => {
+        console.error('Error connecting to network:', err);
+        if (networksContainer) {
+            networksContainer.innerHTML = `
+                <div class="alert alert-danger" style="border-radius: 12px;">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="bi bi-exclamation-triangle-fill me-3 text-danger" style="font-size: 2rem;"></i>
+                        <div>
+                            <h6 class="mb-1">Connection Error</h6>
+                            <small class="text-muted">An error occurred while trying to connect</small>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-sm btn-outline-light" onclick="connectToNetwork('${escapeHtml(ssid)}', ${password ? 'true' : 'false'})">
+                            <i class="bi bi-arrow-repeat me-1"></i>Try Again
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="scanForNetworks()">
+                            <i class="bi bi-list me-1"></i>Back to Networks
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+    });
+}
+
+// Enhanced WiFi status display
+function updateWiFiStatus() {
+    const statusElement = document.getElementById('wifi-status');
+    
+    fetch('/wifi-status')
+        .then(response => response.json())
+        .then(data => {
+            if (statusElement) {
+                if (data.connected) {
+                    statusElement.innerHTML = `
+                        <div class="alert alert-success mb-0" style="border-radius: 12px;">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-wifi me-3 text-success" style="font-size: 1.5rem;"></i>
+                                    <div>
+                                        <strong>Connected to "${data.ssid}"</strong>
+                                        <div class="small text-muted">IP Address: ${data.ip}</div>
+                                    </div>
+                                </div>
+                                <button class="btn btn-sm btn-outline-success" onclick="updateWiFiStatus()" title="Refresh Status">
+                                    <i class="bi bi-arrow-repeat"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    statusElement.innerHTML = `
+                        <div class="alert alert-warning mb-0" style="border-radius: 12px;">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-wifi-off me-3 text-warning" style="font-size: 1.5rem;"></i>
+                                    <div>
+                                        <strong>Not connected to WiFi</strong>
+                                        <div class="small text-muted">Scan for networks to connect</div>
+                                    </div>
+                                </div>
+                                <button class="btn btn-sm btn-outline-warning" onclick="scanForNetworks()" title="Scan Networks">
+                                    <i class="bi bi-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+        })
+        .catch(err => {
+            console.error('Error checking WiFi status:', err);
+            if (statusElement) {
+                statusElement.innerHTML = `
+                    <div class="alert alert-secondary mb-0" style="border-radius: 12px;">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-question-circle me-2"></i>
+                            <span>Unable to check WiFi status</span>
+                        </div>
+                    </div>
+                `;
+            }
+        });
+}
+
 // Set up scrolling for a specific modal body
 function setupModalBodyScroll(modalBody) {
     if (!modalBody) return;
@@ -142,7 +686,7 @@ function setupModalBodyScroll(modalBody) {
     // Ensure modal body has proper styling for scrolling
     modalBody.style.overflow = 'auto';
     modalBody.style.overflowX = 'hidden';
-    modalBody.style.maxHeight = '60vh';
+    modalBody.style.maxHeight = '70vh';
     modalBody.style.position = 'relative';
     modalBody.style.userSelect = 'none';
     modalBody.style.webkitUserSelect = 'none';
@@ -231,223 +775,67 @@ function handleScrollTouchEnd() {
     modalDragScroll.isDragging = false;
 }
 
-// Scan for available WiFi networks
-function scanForNetworks() {
-    const networksContainer = document.getElementById('networks-container');
-    const scanBtn = document.getElementById('scan-networks-btn');
+// Load WiFi configuration from USB
+function loadWiFiConfigFromUSB() {
+    const button = event.target;
+    const originalText = button.innerHTML;
     
-    if (networksContainer) {
-        networksContainer.innerHTML = '<div class="text-center py-3"><div class="spinner-border text-light" role="status"></div><p class="mt-2">Scanning for networks...</p></div>';
-    }
+    button.disabled = true;
+    button.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Loading...';
     
-    if (scanBtn) {
-        scanBtn.disabled = true;
-        scanBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Scanning...';
-    }
-    
-    fetch('/scan-wifi-networks')
+    fetch('/load-usb-wifi-config', { method: 'POST' })
         .then(response => response.json())
         .then(data => {
-            if (scanBtn) {
-                scanBtn.disabled = false;
-                scanBtn.innerHTML = '<i class="bi bi-arrow-repeat"></i> Scan Again';
-            }
-            
-            if (data.success && networksContainer) {
-                if (data.networks.length === 0) {
-                    networksContainer.innerHTML = '<div class="alert alert-warning">No networks found</div>';
-                    return;
-                }
-                
-                let html = '<div class="list-group">';
-                
-                data.networks.forEach(network => {
-                    const signalStrength = getSignalStrengthIcon(network.signal);
-                    const securityIcon = network.security ? '<i class="bi bi-lock-fill ms-2"></i>' : '';
-                    
-                    html += `
-                        <button type="button" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center bg-dark text-white border-secondary" 
-                                onclick="connectToNetwork('${network.ssid}', ${network.security})">
-                            <div>
-                                <span>${network.ssid}</span>
-                                ${securityIcon}
-                            </div>
-                            <div>
-                                ${signalStrength}
-                            </div>
-                        </button>
-                    `;
-                });
-                
-                html += '</div>';
-                networksContainer.innerHTML = html;
-            } else {
-                networksContainer.innerHTML = `<div class="alert alert-danger">${data.error || 'Failed to scan networks'}</div>`;
-            }
-            
-            // Fix scrolling after updating content
-            const modalBody = document.querySelector('#wifi-modal .modal-body');
-            if (modalBody) {
-                setupModalBodyScroll(modalBody);
+            alert(data.message);
+            if (data.message.includes('Successfully')) {
+                // Refresh status if successful
+                setTimeout(() => updateWiFiStatus(), 2000);
             }
         })
         .catch(err => {
-            console.error('Error scanning networks:', err);
-            if (networksContainer) {
-                networksContainer.innerHTML = '<div class="alert alert-danger">Error scanning networks</div>';
-            }
-            if (scanBtn) {
-                scanBtn.disabled = false;
-                scanBtn.innerHTML = '<i class="bi bi-arrow-repeat"></i> Scan Again';
-            }
+            console.error('Error loading WiFi config from USB:', err);
+            alert('Error loading WiFi configuration from USB');
+        })
+        .finally(() => {
+            button.disabled = false;
+            button.innerHTML = originalText;
         });
 }
 
-// Get signal strength icon based on signal level
-function getSignalStrengthIcon(signal) {
-    // Signal is expected to be in dBm, typically between -30 (strong) to -90 (weak)
-    if (signal >= -50) {
-        return '<i class="bi bi-wifi fs-5"></i>';
-    } else if (signal >= -65) {
-        return '<i class="bi bi-wifi-2 fs-5"></i>';
-    } else if (signal >= -75) {
-        return '<i class="bi bi-wifi-1 fs-5"></i>';
-    } else {
-        return '<i class="bi bi-wifi fs-5 text-warning"></i>';
-    }
-}
-
-// Connect to a WiFi network
-function connectToNetwork(ssid, requiresPassword) {
-    const networksContainer = document.getElementById('networks-container');
-    
-    if (requiresPassword) {
-        // Show password input form
-        if (networksContainer) {
-            networksContainer.innerHTML = `
-                <div class="card bg-dark border-secondary">
-                    <div class="card-header">Connect to "${ssid}"</div>
-                    <div class="card-body">
-                        <form id="wifi-password-form">
-                            <div class="mb-3">
-                                <label for="wifi-password" class="form-label">Password</label>
-                                <input type="password" class="form-control" id="wifi-password" required>
-                            </div>
-                            <div class="d-flex justify-content-between">
-                                <button type="button" class="btn btn-secondary" onclick="scanForNetworks()">Cancel</button>
-                                <button type="button" class="btn btn-primary" onclick="submitWiFiConnection('${ssid}')">Connect</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            `;
-        }
-    } else {
-        // Connect directly if no password is required
-        connectWithPassword(ssid, '');
-    }
-    
-    // Fix scrolling after updating content
-    const modalBody = document.querySelector('#wifi-modal .modal-body');
-    if (modalBody) {
-        setupModalBodyScroll(modalBody);
-    }
-}
-
-// Submit WiFi connection with password
-function submitWiFiConnection(ssid) {
-    const passwordInput = document.getElementById('wifi-password');
-    const password = passwordInput ? passwordInput.value : '';
-    
-    connectWithPassword(ssid, password);
-}
-
-// Connect to network with the provided password
-function connectWithPassword(ssid, password) {
-    const networksContainer = document.getElementById('networks-container');
-    
-    if (networksContainer) {
-        networksContainer.innerHTML = `
-            <div class="text-center py-3">
-                <div class="spinner-border text-light" role="status"></div>
-                <p class="mt-2">Connecting to "${ssid}"...</p>
-            </div>
-        `;
-    }
-    
-    fetch('/connect-wifi', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            ssid: ssid,
-            password: password
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success && networksContainer) {
-            networksContainer.innerHTML = `
-                <div class="alert alert-success">
-                    <i class="bi bi-check-circle-fill me-2"></i> Connected to "${ssid}"
-                    <div class="mt-2">
-                        <small>${data.message || 'Connection successful'}</small>
-                    </div>
-                </div>
-            `;
-        } else if (networksContainer) {
-            networksContainer.innerHTML = `
-                <div class="alert alert-danger">
-                    <i class="bi bi-exclamation-triangle-fill me-2"></i> Connection failed
-                    <div class="mt-2">
-                        <small>${data.error || 'Failed to connect to network'}</small>
-                    </div>
-                    <button type="button" class="btn btn-sm btn-outline-light mt-2" onclick="scanForNetworks()">Try Again</button>
-                </div>
-            `;
-        }
-        
-        // Fix scrolling after updating content
-        const modalBody = document.querySelector('#wifi-modal .modal-body');
-        if (modalBody) {
-            setupModalBodyScroll(modalBody);
-        }
-    })
-    .catch(err => {
-        console.error('Error connecting to network:', err);
-        if (networksContainer) {
-            networksContainer.innerHTML = `
-                <div class="alert alert-danger">
-                    <i class="bi bi-exclamation-triangle-fill me-2"></i> Connection error
-                    <div class="mt-2">
-                        <small>An error occurred while trying to connect</small>
-                    </div>
-                    <button type="button" class="btn btn-sm btn-outline-light mt-2" onclick="scanForNetworks()">Try Again</button>
-                </div>
-            `;
-        }
-    });
-}
-
-// Load WiFi configuration from USB
-function loadWiFiConfigFromUSB() {
-    fetch('/load-usb-wifi-config', { method: 'POST' })
-        .then(response => response.json())
-        .then(data => alert(data.message))
-        .catch(err => console.error('Error loading WiFi config from USB:', err));
-}
-
-// Reset all network settings
+// Reset all network settings with confirmation
 function resetNetworkSettings() {
-    if (!confirm('Are you sure you want to reset all network settings?')) return;
+    if (!confirm('Are you sure you want to reset all network settings?\n\nThis will:\n• Remove all saved WiFi networks\n• Reset network configurations\n• Require reconfiguration after reboot')) {
+        return;
+    }
+    
+    const button = event.target;
+    const originalText = button.innerHTML;
+    
+    button.disabled = true;
+    button.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Resetting...';
+    
     fetch('/reset-network-settings', { method: 'POST' })
         .then(response => response.json())
-        .then(data => alert(data.message))
-        .catch(err => console.error('Error resetting network settings:', err));
+        .then(data => {
+            alert(data.message);
+            if (data.message.includes('reset')) {
+                // Suggest reboot after reset
+                if (confirm('Network settings have been reset.\n\nWould you like to reboot now to apply changes?')) {
+                    controlSystem('reboot');
+                }
+            }
+        })
+        .catch(err => {
+            console.error('Error resetting network settings:', err);
+            alert('Error resetting network settings');
+        })
+        .finally(() => {
+            button.disabled = false;
+            button.innerHTML = originalText;
+        });
 }
 
-// Initialize modals when the DOM is loaded
+// Enhanced initialization when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     // Initialize all modals
     document.querySelectorAll('.modal').forEach(modalElement => {
@@ -459,52 +847,175 @@ document.addEventListener('DOMContentLoaded', () => {
             if (modalBody) {
                 setupModalBodyScroll(modalBody);
             }
+            
+            // If it's the WiFi modal, check NetworkManager status
+            if (modalElement.id === 'wifi-modal') {
+                checkNetworkManagerStatus();
+            }
         });
     });
     
-    // Add dragging class to CSS if it doesn't exist
-    if (!document.getElementById('drag-styles')) {
+    // Add enhanced styling if it doesn't exist
+    if (!document.getElementById('enhanced-wifi-styles')) {
         const style = document.createElement('style');
-        style.id = 'drag-styles';
+        style.id = 'enhanced-wifi-styles';
         style.textContent = `
+            /* Enhanced modal and WiFi styling */
             .active-drag {
                 cursor: grabbing !important;
             }
+            
             .modal-body {
                 overscroll-behavior: contain;
+            }
+            
+            .hover-highlight:hover {
+                background-color: rgba(255, 255, 255, 0.15) !important;
+                transform: translateY(-1px);
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            }
+            
+            .hover-highlight:active {
+                transform: translateY(0);
+            }
+            
+            .list-group-item {
+                transition: all 0.2s ease;
+            }
+            
+            /* Progress bar animations */
+            .progress-bar-animated {
+                animation: progress-bar-stripes 1s linear infinite;
+            }
+            
+            @keyframes progress-bar-stripes {
+                0% { background-position: 0 0; }
+                100% { background-position: 40px 0; }
+            }
+            
+            /* Input validation styling */
+            .is-invalid {
+                border-color: #dc3545;
+                box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+            }
+            
+            /* Enhanced alert styling */
+            .alert {
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                backdrop-filter: blur(10px);
+            }
+            
+            /* Custom scrollbar */
+            .modal-body::-webkit-scrollbar {
+                width: 6px;
+            }
+            
+            .modal-body::-webkit-scrollbar-track {
+                background: rgba(255, 255, 255, 0.1);
+                border-radius: 3px;
+            }
+            
+            .modal-body::-webkit-scrollbar-thumb {
+                background: rgba(255, 255, 255, 0.3);
+                border-radius: 3px;
+            }
+            
+            .modal-body::-webkit-scrollbar-thumb:hover {
+                background: rgba(255, 255, 255, 0.5);
+            }
+            
+            /* Network signal strength colors */
+            .text-signal-excellent { color: #28a745 !important; }
+            .text-signal-good { color: #17a2b8 !important; }
+            .text-signal-fair { color: #ffc107 !important; }
+            .text-signal-poor { color: #dc3545 !important; }
+            
+            /* Mobile responsiveness */
+            @media (max-width: 768px) {
+                .modal-body {
+                    max-height: 60vh !important;
+                }
+                
+                .btn {
+                    font-size: 0.9rem;
+                }
+                
+                .hover-highlight:hover {
+                    transform: none;
+                }
+            }
+            
+            /* Focus states for accessibility */
+            .btn:focus,
+            .list-group-item:focus {
+                box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.5);
+                outline: none;
+            }
+            
+            /* Loading spinner customization */
+            .spinner-border-sm {
+                width: 1rem;
+                height: 1rem;
             }
         `;
         document.head.appendChild(style);
     }
     
-    // Periodically check connection status on the WiFi page
-    setInterval(() => {
-        const wifiModal = document.getElementById('wifi-modal');
-        if (wifiModal && wifiModal.classList.contains('show')) {
-            fetch('/wifi-status')
-                .then(response => response.json())
-                .then(data => {
-                    const statusElement = document.getElementById('wifi-status');
-                    if (statusElement) {
-                        if (data.connected) {
-                            statusElement.innerHTML = `
-                                <div class="alert alert-success mb-0">
-                                    <i class="bi bi-wifi"></i> Connected to <strong>${data.ssid}</strong>
-                                    <div><small>IP: ${data.ip}</small></div>
-                                </div>
-                            `;
-                        } else {
-                            statusElement.innerHTML = `
-                                <div class="alert alert-warning mb-0">
-                                    <i class="bi bi-wifi-off"></i> Not connected to any WiFi network
-                                </div>
-                            `;
-                        }
-                    }
-                })
-                .catch(err => {
-                    console.error('Error checking WiFi status:', err);
-                });
+    // Periodically check connection status when WiFi modal is open
+    let statusCheckInterval;
+    
+    // Set up status checking for WiFi modal
+    const wifiModal = document.getElementById('wifi-modal');
+    if (wifiModal) {
+        wifiModal.addEventListener('shown.bs.modal', () => {
+            // Start periodic status checks
+            statusCheckInterval = setInterval(() => {
+                if (wifiModal.classList.contains('show')) {
+                    updateWiFiStatus();
+                }
+            }, 10000); // Check every 10 seconds
+        });
+        
+        wifiModal.addEventListener('hidden.bs.modal', () => {
+            // Stop status checks when modal is closed
+            if (statusCheckInterval) {
+                clearInterval(statusCheckInterval);
+            }
+        });
+    }
+    
+    // Add keyboard shortcuts for better accessibility
+    document.addEventListener('keydown', (e) => {
+        // ESC key to close modals
+        if (e.key === 'Escape') {
+            const openModal = document.querySelector('.modal.show');
+            if (openModal) {
+                const bsModal = bootstrap.Modal.getInstance(openModal);
+                if (bsModal) {
+                    bsModal.hide();
+                }
+            }
         }
-    }, 5000);
+        
+        // Ctrl+R to refresh network scan when WiFi modal is open
+        if (e.ctrlKey && e.key === 'r') {
+            const wifiModal = document.getElementById('wifi-modal');
+            if (wifiModal && wifiModal.classList.contains('show')) {
+                e.preventDefault();
+                scanForNetworks();
+            }
+        }
+    });
+    
+    // Add tooltips to buttons for better UX
+    const buttons = document.querySelectorAll('button[title]');
+    buttons.forEach(button => {
+        button.addEventListener('mouseenter', () => {
+            if (button.title) {
+                // You can add custom tooltip implementation here if needed
+            }
+        });
+    });
+    
+    console.log('WiFi Settings: Enhanced initialization complete');
 });
