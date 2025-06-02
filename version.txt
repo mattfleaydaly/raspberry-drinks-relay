@@ -1,3 +1,4 @@
+V2.1.1 - Wide screen modal support
 V2.1.0 - Wide screen support and setup fixes to support RPI Lite
 V2.0.0 - Overhaul of system and make drinks works now. Additional small screen tweaks for RPI 320x480
 v1.1.0 - Added setup button, improved templates for small screens, added version history support
