@@ -1,3 +1,4 @@
+V2.2.0 - WiFi rework to allow for better support
 V2.1.1 - Wide screen modal support
 V2.1.0 - Wide screen support and setup fixes to support RPI Lite
 V2.0.0 - Overhaul of system and make drinks works now. Additional small screen tweaks for RPI 320x480
