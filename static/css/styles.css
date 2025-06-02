@@ -233,6 +233,7 @@ html, body {
     color: white;
     border-radius: 10px;
     border: 1px solid var(--border-color);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
 .modal-header {
@@ -248,6 +249,24 @@ html, body {
 .modal-title {
     font-size: 1.1rem;
     color: white;
+}
+
+.modal-backdrop {
+    background-color: rgba(0, 0, 0, 0.7);
+}
+
+/* Modal responsive sizing */
+.modal-dialog {
+    max-width: 500px;
+    margin: 1.75rem auto;
+}
+
+.modal-lg {
+    max-width: 800px;
+}
+
+.modal-xl {
+    max-width: 1140px;
 }
 
 /* Drag cursor styling */
@@ -596,6 +615,73 @@ input, textarea, select {
     .section-divider {
         font-size: 0.9rem;
         margin: 20px 0 8px 0;
+    }
+    
+    /* Modal enhancements for ultra-wide screens */
+    .modal-dialog {
+        max-width: 700px;
+        margin: 2rem auto;
+    }
+    
+    .modal-lg {
+        max-width: 1000px;
+    }
+    
+    .modal-xl {
+        max-width: 1200px;
+    }
+    
+    .modal-content {
+        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6);
+        border-radius: 12px;
+    }
+    
+    .modal-header {
+        padding: 20px 24px;
+        border-bottom: 2px solid var(--border-color);
+    }
+    
+    .modal-body {
+        padding: 24px;
+        max-height: 300px; /* Limit height for 400px screen */
+        overflow-y: auto;
+    }
+    
+    .modal-footer {
+        padding: 16px 24px;
+        border-top: 2px solid var(--border-color);
+        gap: 12px;
+        display: flex;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+    }
+    
+    .modal-title {
+        font-size: 1.4rem;
+        font-weight: 600;
+    }
+    
+    /* Modal button improvements */
+    .modal-footer .btn {
+        min-width: 120px;
+        margin-left: 0;
+        margin-bottom: 0;
+    }
+    
+    /* Wide modal layouts */
+    .modal-body-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+    }
+    
+    .modal-body-columns {
+        display: flex;
+        gap: 24px;
+    }
+    
+    .modal-body-columns > * {
+        flex: 1;
     }
 }
 
