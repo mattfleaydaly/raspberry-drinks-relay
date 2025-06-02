@@ -1,4 +1,4 @@
-from flask import Flask, render_template, jsonify, request, Response
+from flask import Flask, render_template, jsonify, request, Response, redirect, url_for
 from gpiozero import OutputDevice
 import os
 import socket
@@ -633,7 +633,13 @@ def git_pull():
 
 # Route handlers
 @app.route("/")
-def home():
+def index():
+    """Redirect to make drinks page on initial load"""
+    return redirect(url_for('make_drinks'))
+
+@app.route("/dashboard")
+def dashboard():
+    """Dashboard/home page"""
     config = get_config()
     return render_template("dashboard.html", system_name=config["system_name"])
 
