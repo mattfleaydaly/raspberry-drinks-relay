@@ -52,7 +52,9 @@
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content bg-dark text-white">
                 <div class="modal-header border-secondary">
-                    <h5 class="modal-title">System Update</h5>
+                    <h5 class="modal-title">
+                        <i class="bi bi-arrow-repeat me-2"></i>System Update
+                    </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body modal-scrollable">
@@ -61,117 +63,479 @@
                     </div>
                 </div>
                 <div class="modal-footer border-secondary">
-                    <button class="btn btn-primary" data-bs-dismiss="modal">Close</button>
+                    <button class="btn btn-primary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-lg me-1"></i>Close
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- WiFi Config Modal -->
+    <!-- Enhanced WiFi Configuration Modal -->
     <div id="wifi-modal" class="modal fade" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
             <div class="modal-content bg-dark text-white">
                 <div class="modal-header border-secondary">
-                    <h5 class="modal-title">WiFi Configuration</h5>
+                    <h5 class="modal-title">
+                        <i class="bi bi-wifi me-2"></i>WiFi Configuration
+                    </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body modal-scrollable">
-                    <!-- Current WiFi Status -->
-                    <div id="wifi-status" class="mb-3">
-                        <!-- Status will be updated via JS -->
-                        <div class="alert alert-secondary mb-0">
-                            <i class="bi bi-wifi"></i> Checking connection status...
+                    
+                    <!-- Connection Status Section -->
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="text-light mb-0">
+                                <i class="bi bi-info-circle me-2"></i>Connection Status
+                            </h6>
+                            <button class="btn btn-sm btn-outline-light" onclick="updateWiFiStatus()" title="Refresh Status">
+                                <i class="bi bi-arrow-repeat"></i>
+                            </button>
+                        </div>
+                        <div id="wifi-status" class="mb-3">
+                            <!-- Status will be updated via JS -->
+                            <div class="alert alert-secondary mb-0" style="border-radius: 12px;">
+                                <div class="d-flex align-items-center">
+                                    <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                                    <span>Checking connection status...</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     
-                    <!-- Network Scan Button -->
-                    <div class="mb-3">
-                        <button id="scan-networks-btn" class="btn btn-primary w-100" onclick="scanForNetworks()">
-                            <i class="bi bi-search"></i> Scan for Networks
-                        </button>
-                    </div>
-                    
-                    <!-- Networks Container -->
-                    <div id="networks-container" class="mb-3">
-                        <!-- Networks will appear here after scanning -->
-                        <div class="text-center text-muted py-3">
-                            <i class="bi bi-wifi fs-3"></i>
-                            <p>Tap "Scan for Networks" to find available WiFi networks</p>
+                    <!-- Network Scanner Section -->
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="text-light mb-0">
+                                <i class="bi bi-search me-2"></i>Available Networks
+                            </h6>
+                            <button id="scan-networks-btn" class="btn btn-sm btn-primary" onclick="scanForNetworks()" title="Scan for WiFi Networks">
+                                <i class="bi bi-arrow-repeat"></i> Scan
+                            </button>
+                        </div>
+                        
+                        <!-- Networks Container -->
+                        <div id="networks-container" class="mb-3">
+                            <!-- Networks will appear here after scanning -->
+                            <div class="text-center text-muted py-5" style="border: 2px dashed rgba(255, 255, 255, 0.2); border-radius: 12px;">
+                                <i class="bi bi-wifi fs-1 mb-3 opacity-50"></i>
+                                <h6 class="mb-2">No networks scanned yet</h6>
+                                <p class="small mb-3">Click "Scan" to discover available WiFi networks</p>
+                                <button class="btn btn-outline-light btn-sm" onclick="scanForNetworks()">
+                                    <i class="bi bi-search me-1"></i>Start Scanning
+                                </button>
+                            </div>
                         </div>
                     </div>
                     
-                    <hr class="border-secondary">
-                    
-                    <div class="d-grid gap-3">
-                        <button class="btn btn-outline-primary py-2" onclick="loadWiFiConfigFromUSB()">
-                            <i class="bi bi-usb-drive"></i> Load USB Config
-                        </button>
-                        <button class="btn btn-outline-danger py-2" onclick="resetNetworkSettings()">
-                            <i class="bi bi-x-circle"></i> Reset All Network Settings
-                        </button>
+                    <!-- Advanced Configuration Section -->
+                    <div class="border-top border-secondary pt-4">
+                        <h6 class="text-light mb-3">
+                            <i class="bi bi-gear me-2"></i>Advanced Configuration
+                        </h6>
+                        
+                        <div class="row g-3">
+                            <!-- USB Configuration -->
+                            <div class="col-md-6">
+                                <div class="card bg-secondary border-0 h-100" style="border-radius: 12px;">
+                                    <div class="card-body text-center">
+                                        <i class="bi bi-usb-drive fs-2 text-primary mb-3"></i>
+                                        <h6 class="card-title">USB Configuration</h6>
+                                        <p class="card-text small text-muted mb-3">
+                                            Load WiFi settings from a USB drive containing wificonfig.json
+                                        </p>
+                                        <button class="btn btn-outline-primary btn-sm w-100" onclick="loadWiFiConfigFromUSB()">
+                                            <i class="bi bi-upload me-1"></i>Load from USB
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Network Reset -->
+                            <div class="col-md-6">
+                                <div class="card bg-secondary border-0 h-100" style="border-radius: 12px;">
+                                    <div class="card-body text-center">
+                                        <i class="bi bi-arrow-clockwise fs-2 text-warning mb-3"></i>
+                                        <h6 class="card-title">Reset Networks</h6>
+                                        <p class="card-text small text-muted mb-3">
+                                            Remove all saved WiFi networks and reset configurations
+                                        </p>
+                                        <button class="btn btn-outline-warning btn-sm w-100" onclick="resetNetworkSettings()">
+                                            <i class="bi bi-trash me-1"></i>Reset Settings
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- NetworkManager Status -->
+                        <div class="mt-4">
+                            <div class="card bg-secondary border-0" style="border-radius: 12px;">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <div>
+                                            <h6 class="mb-1">
+                                                <i class="bi bi-gear-fill me-2"></i>NetworkManager Status
+                                            </h6>
+                                            <p class="small text-muted mb-0">
+                                                NetworkManager is required for WiFi functionality on Raspberry Pi OS Bookworm
+                                            </p>
+                                        </div>
+                                        <button class="btn btn-outline-info btn-sm" onclick="checkNetworkManagerStatus()">
+                                            <i class="bi bi-arrow-repeat me-1"></i>Check Status
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Quick Actions -->
+                        <div class="mt-4">
+                            <h6 class="text-light mb-3">
+                                <i class="bi bi-lightning me-2"></i>Quick Actions
+                            </h6>
+                            <div class="d-flex gap-2 flex-wrap">
+                                <button class="btn btn-outline-success btn-sm" onclick="updateWiFiStatus()">
+                                    <i class="bi bi-arrow-repeat me-1"></i>Refresh Status
+                                </button>
+                                <button class="btn btn-outline-primary btn-sm" onclick="scanForNetworks()">
+                                    <i class="bi bi-search me-1"></i>Quick Scan
+                                </button>
+                                <button class="btn btn-outline-info btn-sm" onclick="checkNetworkManagerStatus()">
+                                    <i class="bi bi-gear me-1"></i>Check NetworkManager
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Help Section -->
+                        <div class="mt-4">
+                            <div class="alert alert-info" style="border-radius: 12px; background: rgba(13, 202, 240, 0.1); border: 1px solid rgba(13, 202, 240, 0.3);">
+                                <h6 class="alert-heading">
+                                    <i class="bi bi-info-circle me-2"></i>Troubleshooting Tips
+                                </h6>
+                                <div class="small">
+                                    <ul class="mb-0 ps-3">
+                                        <li>If no networks appear, try enabling NetworkManager first</li>
+                                        <li>Connection failures may require a system reboot</li>
+                                        <li>For persistent issues, reset network settings and try again</li>
+                                        <li>Use Ctrl+R to refresh the network scan</li>
+                                        <li>Check that your WiFi country is properly set</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
+                
+                <!-- Enhanced Modal Footer -->
                 <div class="modal-footer border-secondary">
-                    <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <div class="d-flex align-items-center justify-content-between w-100">
+                        <small class="text-muted">
+                            <i class="bi bi-keyboard me-1"></i>
+                            Press <kbd>Ctrl+R</kbd> to refresh • <kbd>Esc</kbd> to close
+                        </small>
+                        <button class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="bi bi-x-lg me-1"></i>Close
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 {% endblock %}
+
 {% block scripts %}
 <script src="/static/js/settings.js"></script>
 <style>
-    /* Scrollable modal styling */
+    /* Enhanced WiFi Modal Styling */
+    .modal-xl {
+        max-width: 90%;
+    }
+    
     .modal-scrollable {
-        max-height: 60vh !important;
+        max-height: 75vh !important;
         overflow-y: auto !important;
         overflow-x: hidden;
-        padding-right: 5px;
+        padding-right: 8px;
         -webkit-overflow-scrolling: touch;
         overscroll-behavior: contain;
         position: relative;
     }
     
-    /* Dragging cursor style */
-    .active-drag {
-        cursor: grabbing !important;
+    /* Custom scrollbar for modal */
+    .modal-scrollable::-webkit-scrollbar {
+        width: 6px;
     }
     
-    /* Log container styling */
-    .log-container {
-        border-radius: 4px;
-        font-size: 0.85rem;
-        line-height: 1.4;
+    .modal-scrollable::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 3px;
     }
     
-    /* WiFi network list styling */
+    .modal-scrollable::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.3);
+        border-radius: 3px;
+    }
+    
+    .modal-scrollable::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.5);
+    }
+    
+    /* Enhanced card styling */
+    .card {
+        border-radius: 12px !important;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+    }
+    
+    .card-header {
+        border-radius: 12px 12px 0 0 !important;
+        background: rgba(255, 255, 255, 0.05);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    /* Alert and status styling */
+    .alert {
+        border-radius: 12px !important;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+    }
+    
+    /* Enhanced network list styling */
     .list-group-item {
-        transition: background-color 0.2s;
+        transition: all 0.2s ease;
+        border-radius: 8px !important;
+        margin-bottom: 4px;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        backdrop-filter: blur(5px);
     }
     
     .list-group-item:hover {
-        background-color: rgba(255, 255, 255, 0.1) !important;
+        background-color: rgba(255, 255, 255, 0.15) !important;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        border-color: rgba(255, 255, 255, 0.3) !important;
     }
     
-    /* Button icons alignment */
+    .list-group-item:active {
+        transform: translateY(0);
+    }
+    
+    /* Button enhancements */
+    .btn {
+        border-radius: 8px;
+        transition: all 0.2s ease;
+        font-weight: 500;
+    }
+    
+    .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+    
+    .btn:active {
+        transform: translateY(0);
+    }
+    
     .btn i {
         margin-right: 0.5rem;
     }
     
-    /* Mobile specific styles */
-    @media (max-width: 576px) {
+    /* Log container styling */
+    .log-container {
+        border-radius: 8px;
+        font-size: 0.85rem;
+        line-height: 1.4;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: #000 !important;
+    }
+    
+    /* Loading and progress animations */
+    .spinner-border {
+        animation: spinner-border 0.75s linear infinite;
+    }
+    
+    @keyframes spinner-border {
+        to { transform: rotate(360deg); }
+    }
+    
+    .progress-bar-animated {
+        animation: progress-bar-stripes 1s linear infinite;
+    }
+    
+    @keyframes progress-bar-stripes {
+        0% { background-position: 0 0; }
+        100% { background-position: 40px 0; }
+    }
+    
+    /* Input validation styling */
+    .is-invalid {
+        border-color: #dc3545 !important;
+        box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+    }
+    
+    /* Keyboard shortcuts styling */
+    kbd {
+        background-color: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+        padding: 2px 6px;
+        font-size: 0.8em;
+        color: #fff;
+    }
+    
+    /* Network signal strength indicators */
+    .signal-excellent { color: #28a745 !important; }
+    .signal-good { color: #17a2b8 !important; }
+    .signal-fair { color: #ffc107 !important; }
+    .signal-poor { color: #dc3545 !important; }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .modal-xl {
+            max-width: 95%;
+        }
+        
         .modal-scrollable {
-            max-height: 50vh !important;
+            max-height: 70vh !important;
         }
         
         .modal-dialog {
             margin: 0.5rem;
         }
         
-        .modal-footer {
-            padding: 0.5rem;
+        .modal-footer, .modal-header {
+            padding: 0.75rem;
         }
+        
+        .btn {
+            font-size: 0.9rem;
+        }
+        
+        .py-3 {
+            padding-top: 0.75rem !important;
+            padding-bottom: 0.75rem !important;
+        }
+        
+        .card:hover {
+            transform: none;
+        }
+        
+        .list-group-item:hover {
+            transform: none;
+        }
+        
+        .btn:hover {
+            transform: none;
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .modal-dialog {
+            margin: 0.25rem;
+        }
+        
+        .modal-scrollable {
+            max-height: 65vh !important;
+        }
+        
+        .card-body {
+            padding: 1rem;
+        }
+        
+        .btn i {
+            margin-right: 0.25rem;
+        }
+        
+        .py-5 {
+            padding-top: 2rem !important;
+            padding-bottom: 2rem !important;
+        }
+    }
+    
+    /* Focus states for accessibility */
+    .btn:focus,
+    .list-group-item:focus {
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.5);
+        outline: none;
+    }
+    
+    /* Enhanced dragging and scrolling */
+    .active-drag {
+        cursor: grabbing !important;
+        user-select: none;
+    }
+    
+    .modal-body {
+        overscroll-behavior: contain;
+    }
+    
+    /* Toast-like notifications (for future use) */
+    .toast-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1060;
+    }
+    
+    /* Improved form styling */
+    .form-control:focus {
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+    }
+    
+    .input-group {
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    
+    /* Enhanced modal transitions */
+    .modal.fade .modal-dialog {
+        transition: transform 0.3s ease-out;
+        transform: translate(0, -50px);
+    }
+    
+    .modal.show .modal-dialog {
+        transform: none;
+    }
+    
+    /* Status indicator dots */
+    .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 8px;
+    }
+    
+    .status-dot.connected {
+        background-color: #28a745;
+        box-shadow: 0 0 0 2px rgba(40, 167, 69, 0.3);
+    }
+    
+    .status-dot.disconnected {
+        background-color: #dc3545;
+        box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.3);
+    }
+    
+    .status-dot.connecting {
+        background-color: #ffc107;
+        box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.3);
+        animation: pulse 1.5s infinite;
+    }
+    
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.5; }
+        100% { opacity: 1; }
     }
 </style>
 {% endblock %}
