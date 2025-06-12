@@ -200,63 +200,6 @@ def photo_library():
     data = load_photo_library()
     return render_template("photo_library.html", data=data)
 
-@app.route("/api/photo-library/scan-usb", methods=["GET"])
-def scan_usb():
-    """Scan for USB drives"""
-    try:
-        usb_path = find_usb_mount()
-        
-        if usb_path:
-            # Check if there are any image files
-            image_files = get_image_files(usb_path)
-            
-            return jsonify({
-                'found': True,
-                'name': f'USB Drive ({os.path.basename(usb_path)})',
-                'path': usb_path,
-                'image_count': len(image_files)
-            })
-        else:
-            return jsonify({
-                'found': False,
-                'error': 'No mounted USB drive found',
-                'checked_paths': USB_MOUNT_PATHS
-            })
-            
-    except Exception as e:
-        return jsonify({
-            'found': False,
-            'error': f'Error scanning for USB: {str(e)}'
-        })
-
-@app.route("/api/photo-library/list-usb", methods=["GET"])
-def list_usb_photos():
-    """List all photos on the USB drive"""
-    try:
-        usb_path = find_usb_mount()
-        
-        if not usb_path:
-            return jsonify({
-                'success': False,
-                'error': 'No USB drive found',
-                'photos': []
-            })
-        
-        photos = get_image_files(usb_path)
-        
-        return jsonify({
-            'success': True,
-            'photos': photos,
-            'usb_path': usb_path
-        })
-        
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e),
-            'photos': []
-        })
-
 @app.route("/api/photo-library/usb-preview/<path:filename>", methods=["GET"])
 def usb_preview(filename):
     """Serve USB photo previews"""
@@ -354,67 +297,6 @@ def create_folder():
         
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
-
-@app.route("/api/photo-library/debug-usb", methods=["GET"])
-def debug_usb():
-    """Debug USB detection issues"""
-    try:
-        debug_info = {
-            'checked_paths': USB_MOUNT_PATHS,
-            'existing_paths': [],
-            'mounted_paths': [],
-            'accessible_paths': [],
-            'mount_output': '',
-            'lsblk_output': '',
-            'udisks2_installed': False
-        }
-        
-        # Check which paths exist
-        for path in USB_MOUNT_PATHS:
-            if os.path.exists(path):
-                debug_info['existing_paths'].append(path)
-                
-                if os.path.ismount(path):
-                    debug_info['mounted_paths'].append(path)
-                    
-                    try:
-                        files = os.listdir(path)
-                        debug_info['accessible_paths'].append({
-                            'path': path,
-                            'files': len(files),
-                            'sample_files': files[:5]
-                        })
-                    except PermissionError:
-                        debug_info['accessible_paths'].append({
-                            'path': path,
-                            'error': 'Permission denied'
-                        })
-        
-        # Get mount command output
-        try:
-            mount_result = subprocess.run(['mount'], capture_output=True, text=True)
-            debug_info['mount_output'] = mount_result.stdout
-        except:
-            debug_info['mount_output'] = 'Failed to run mount command'
-        
-        # Get lsblk output
-        try:
-            lsblk_result = subprocess.run(['lsblk', '-f'], capture_output=True, text=True)
-            debug_info['lsblk_output'] = lsblk_result.stdout
-        except:
-            debug_info['lsblk_output'] = 'Failed to run lsblk command'
-        
-        # Check if udisks2 is installed
-        try:
-            subprocess.run(['which', 'udisksctl'], capture_output=True, check=True)
-            debug_info['udisks2_installed'] = True
-        except:
-            debug_info['udisks2_installed'] = False
-        
-        return jsonify(debug_info)
-        
-    except Exception as e:
-        return jsonify({'error': str(e)})
 
 @app.route("/api/photo-library/check-mounts", methods=["GET"])
 def check_mounts():
