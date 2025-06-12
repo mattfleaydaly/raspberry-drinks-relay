@@ -163,10 +163,13 @@ def upload_photos():
 
     folder_path = os.path.join(PHOTOS_FOLDER, folder)
     os.makedirs(folder_path, exist_ok=True)
+    os.chmod(folder_path, 0o775)
 
     for file in files:
         filename = secure_filename(file.filename)
-        file.save(os.path.join(folder_path, filename))
+        file_path = os.path.join(folder_path, filename)
+        file.save(file_path)
+        os.chmod(file_path, 0o664)
         data["photos"][filename] = folder
 
     save_photo_library(data)
@@ -183,12 +186,14 @@ def import_photos_usb():
     data = load_photo_library()
     folder_path = os.path.join(PHOTOS_FOLDER, folder)
     os.makedirs(folder_path, exist_ok=True)
+    os.chmod(folder_path, 0o775)
 
     imported = []
     for photo in os.listdir(usb_path):
         src = os.path.join(usb_path, photo)
         dest = os.path.join(folder_path, secure_filename(photo))
         shutil.copy(src, dest)
+        os.chmod(dest, 0o664)
         data["photos"][photo] = folder
         imported.append(photo)
 
@@ -203,32 +208,42 @@ def manage_photos():
     if action == "create_folder":
         folder_name = request.json.get("folder")
         if folder_name not in data["folders"]:
+            folder_path = os.path.join(PHOTOS_FOLDER, folder_name)
+            os.makedirs(folder_path, exist_ok=True)
+            os.chmod(folder_path, 0o775)
             data["folders"].append(folder_name)
-            os.makedirs(os.path.join(PHOTOS_FOLDER, folder_name), exist_ok=True)
 
     elif action == "delete_folder":
         folder_name = request.json.get("folder")
         if folder_name in data["folders"] and folder_name != 'default':
             shutil.rmtree(os.path.join(PHOTOS_FOLDER, folder_name))
             data["folders"].remove(folder_name)
-            data["photos"] = {k:v for k,v in data["photos"].items() if v != folder_name}
+            data["photos"] = {k: v for k, v in data["photos"].items() if v != folder_name}
 
     elif action == "move_photo":
         photo = request.json.get("photo")
         new_folder = request.json.get("new_folder")
-        old_folder = data["photos"][photo]
+        old_folder = data["photos"].get(photo, 'default')
 
         old_path = os.path.join(PHOTOS_FOLDER, old_folder, photo)
         new_path = os.path.join(PHOTOS_FOLDER, new_folder, photo)
-        shutil.move(old_path, new_path)
-        data["photos"][photo] = new_folder
+        
+        if os.path.exists(old_path):
+            shutil.move(old_path, new_path)
+            os.chmod(new_path, 0o664)
+            data["photos"][photo] = new_folder
+        else:
+            return jsonify({"success": False, "error": "Photo does not exist"}), 404
 
     elif action == "delete_photo":
         photo = request.json.get("photo")
-        folder = data["photos"][photo]
+        folder = data["photos"].get(photo, 'default')
         photo_path = os.path.join(PHOTOS_FOLDER, folder, photo)
-        os.remove(photo_path)
-        del data["photos"][photo]
+        if os.path.exists(photo_path):
+            os.remove(photo_path)
+            del data["photos"][photo]
+        else:
+            return jsonify({"success": False, "error": "Photo does not exist"}), 404
 
     save_photo_library(data)
     return jsonify({"success": True, "data": data})
