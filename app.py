@@ -329,9 +329,6 @@ def import_photos_usb():
         "errors": errors,
         "imported_count": len(imported)
     })
-        
-except Exception as e:  # <-- Remove extra indentation
-    return jsonify({"success": False, "error": str(e)})
 
 @app.route("/api/photo-library/create-folder", methods=["POST"])
 def create_folder():
