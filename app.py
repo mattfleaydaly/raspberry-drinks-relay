@@ -139,6 +139,15 @@ def check_networkmanager_status():
 PHOTOS_FOLDER = 'photos/albums'
 PHOTO_LIB_JSON = 'photo_library.json'
 
+# USB mount locations to check
+USB_MOUNT_PATHS = [
+    '/mnt/usb',
+    '/media/pi', 
+    '/run/media/pi',
+    f'/media/{os.getenv("USER", "pi")}',
+    '/media/usb'
+]
+
 def load_photo_library():
     if not os.path.exists(PHOTO_LIB_JSON):
         default_structure = {"folders": ["default"], "photos": {}}
@@ -150,61 +159,342 @@ def save_photo_library(data):
     with open(PHOTO_LIB_JSON, "w") as f:
         json.dump(data, f, indent=2)
 
+def find_usb_mount():
+    """Find the first available USB mount point"""
+    for path in USB_MOUNT_PATHS:
+        if os.path.exists(path) and os.path.ismount(path):
+            try:
+                # Test if we can list the directory
+                os.listdir(path)
+                return path
+            except PermissionError:
+                continue
+    return None
+
+def get_image_files(directory):
+    """Get all image files from a directory"""
+    if not os.path.exists(directory):
+        return []
+    
+    image_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp'}
+    files = []
+    
+    try:
+        for filename in os.listdir(directory):
+            if any(filename.lower().endswith(ext) for ext in image_extensions):
+                file_path = os.path.join(directory, filename)
+                if os.path.isfile(file_path):
+                    files.append({
+                        'name': filename,
+                        'path': file_path,
+                        'size': os.path.getsize(file_path)
+                    })
+    except PermissionError:
+        pass
+    
+    return files
+
 @app.route("/photo-library")
 def photo_library():
     data = load_photo_library()
     return render_template("photo_library.html", data=data)
 
+@app.route("/api/photo-library/scan-usb", methods=["GET"])
+def scan_usb():
+    """Scan for USB drives"""
+    try:
+        usb_path = find_usb_mount()
+        
+        if usb_path:
+            # Check if there are any image files
+            image_files = get_image_files(usb_path)
+            
+            return jsonify({
+                'found': True,
+                'name': f'USB Drive ({os.path.basename(usb_path)})',
+                'path': usb_path,
+                'image_count': len(image_files)
+            })
+        else:
+            return jsonify({
+                'found': False,
+                'error': 'No mounted USB drive found',
+                'checked_paths': USB_MOUNT_PATHS
+            })
+            
+    except Exception as e:
+        return jsonify({
+            'found': False,
+            'error': f'Error scanning for USB: {str(e)}'
+        })
+
+@app.route("/api/photo-library/list-usb", methods=["GET"])
+def list_usb_photos():
+    """List all photos on the USB drive"""
+    try:
+        usb_path = find_usb_mount()
+        
+        if not usb_path:
+            return jsonify({
+                'success': False,
+                'error': 'No USB drive found',
+                'photos': []
+            })
+        
+        photos = get_image_files(usb_path)
+        
+        return jsonify({
+            'success': True,
+            'photos': photos,
+            'usb_path': usb_path
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'photos': []
+        })
+
+@app.route("/api/photo-library/usb-preview/<path:filename>", methods=["GET"])
+def usb_preview(filename):
+    """Serve USB photo previews"""
+    try:
+        usb_path = find_usb_mount()
+        if not usb_path:
+            return "USB not found", 404
+            
+        file_path = os.path.join(usb_path, filename)
+        if not os.path.exists(file_path):
+            return "File not found", 404
+            
+        return send_file(file_path)
+        
+    except Exception as e:
+        return f"Error: {str(e)}", 500
+
+@app.route("/api/photo-library/import-usb", methods=["POST"])
+def import_photos_usb():
+    """Import selected photos from USB"""
+    try:
+        folder = request.json.get('folder', 'default')
+        selected_photos = request.json.get('photos', [])
+        
+        if not selected_photos:
+            return jsonify({"success": False, "error": "No photos selected"})
+        
+        usb_path = find_usb_mount()
+        if not usb_path:
+            return jsonify({"success": False, "error": "USB drive not found"})
+        
+        data = load_photo_library()
+        
+        # Ensure folder exists
+        if folder not in data["folders"]:
+            data["folders"].append(folder)
+        
+        folder_path = os.path.join(PHOTOS_FOLDER, folder)
+        os.makedirs(folder_path, exist_ok=True)
+        os.chmod(folder_path, 0o775)
+        
+        imported = []
+        errors = []
+        
+        for photo_name in selected_photos:
+            try:
+                src = os.path.join(usb_path, photo_name)
+                if not os.path.exists(src):
+                    errors.append(f"File not found: {photo_name}")
+                    continue
+                
+                safe_filename = secure_filename(photo_name)
+                dest = os.path.join(folder_path, safe_filename)
+                
+                # Copy file
+                shutil.copy2(src, dest)
+                os.chmod(dest, 0o664)
+                
+                # Update library
+                data["photos"][safe_filename] = folder
+                imported.append(safe_filename)
+                
+            except Exception as e:
+                errors.append(f"Error importing {photo_name}: {str(e)}")
+        
+        save_photo_library(data)
+        
+        return jsonify({
+            "success": True,
+            "imported": imported,
+            "errors": errors,
+            "imported_count": len(imported)
+        })
+        
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+@app.route("/api/photo-library/create-folder", methods=["POST"])
+def create_folder():
+    """Create a new photo folder"""
+    try:
+        folder_name = request.json.get("folder")
+        if not folder_name:
+            return jsonify({"success": False, "error": "Folder name required"})
+        
+        data = load_photo_library()
+        
+        if folder_name in data["folders"]:
+            return jsonify({"success": False, "error": "Folder already exists"})
+        
+        folder_path = os.path.join(PHOTOS_FOLDER, folder_name)
+        os.makedirs(folder_path, exist_ok=True)
+        os.chmod(folder_path, 0o775)
+        
+        data["folders"].append(folder_name)
+        save_photo_library(data)
+        
+        return jsonify({"success": True, "folder": folder_name})
+        
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+@app.route("/api/photo-library/debug-usb", methods=["GET"])
+def debug_usb():
+    """Debug USB detection issues"""
+    try:
+        debug_info = {
+            'checked_paths': USB_MOUNT_PATHS,
+            'existing_paths': [],
+            'mounted_paths': [],
+            'accessible_paths': [],
+            'mount_output': '',
+            'lsblk_output': '',
+            'udisks2_installed': False
+        }
+        
+        # Check which paths exist
+        for path in USB_MOUNT_PATHS:
+            if os.path.exists(path):
+                debug_info['existing_paths'].append(path)
+                
+                if os.path.ismount(path):
+                    debug_info['mounted_paths'].append(path)
+                    
+                    try:
+                        files = os.listdir(path)
+                        debug_info['accessible_paths'].append({
+                            'path': path,
+                            'files': len(files),
+                            'sample_files': files[:5]
+                        })
+                    except PermissionError:
+                        debug_info['accessible_paths'].append({
+                            'path': path,
+                            'error': 'Permission denied'
+                        })
+        
+        # Get mount command output
+        try:
+            mount_result = subprocess.run(['mount'], capture_output=True, text=True)
+            debug_info['mount_output'] = mount_result.stdout
+        except:
+            debug_info['mount_output'] = 'Failed to run mount command'
+        
+        # Get lsblk output
+        try:
+            lsblk_result = subprocess.run(['lsblk', '-f'], capture_output=True, text=True)
+            debug_info['lsblk_output'] = lsblk_result.stdout
+        except:
+            debug_info['lsblk_output'] = 'Failed to run lsblk command'
+        
+        # Check if udisks2 is installed
+        try:
+            subprocess.run(['which', 'udisksctl'], capture_output=True, check=True)
+            debug_info['udisks2_installed'] = True
+        except:
+            debug_info['udisks2_installed'] = False
+        
+        return jsonify(debug_info)
+        
+    except Exception as e:
+        return jsonify({'error': str(e)})
+
+@app.route("/api/photo-library/check-mounts", methods=["GET"])
+def check_mounts():
+    """Check current mount points"""
+    try:
+        result = subprocess.run(['mount'], capture_output=True, text=True)
+        mounts = result.stdout.split('\n')
+        
+        usb_mounts = []
+        all_mounts = []
+        
+        for mount in mounts:
+            if mount.strip():
+                all_mounts.append(mount.strip())
+                if any(keyword in mount.lower() for keyword in ['usb', 'media', 'mnt', 'sda', 'sdb']):
+                    usb_mounts.append(mount.strip())
+        
+        return jsonify({
+            'mounts': all_mounts,
+            'usbMounts': usb_mounts
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)})
+
+@app.route("/api/photo-library/list-media", methods=["GET"])
+def list_media():
+    """List contents of media directories"""
+    try:
+        media_contents = []
+        mnt_contents = []
+        
+        if os.path.exists('/media'):
+            try:
+                media_contents = os.listdir('/media')
+            except PermissionError:
+                media_contents = ['Permission denied']
+        
+        if os.path.exists('/mnt'):
+            try:
+                mnt_contents = os.listdir('/mnt')
+            except PermissionError:
+                mnt_contents = ['Permission denied']
+        
+        return jsonify({
+            'media': media_contents,
+            'mnt': mnt_contents
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)})
+
 @app.route("/api/photo-library/upload", methods=["POST"])
 def upload_photos():
     folder = request.form.get('folder', 'default')
     files = request.files.getlist('photos')
+    
     data = load_photo_library()
-
     folder_path = os.path.join(PHOTOS_FOLDER, folder)
     os.makedirs(folder_path, exist_ok=True)
     os.chmod(folder_path, 0o775)
-
+    
     for file in files:
         filename = secure_filename(file.filename)
         file_path = os.path.join(folder_path, filename)
         file.save(file_path)
         os.chmod(file_path, 0o664)
         data["photos"][filename] = folder
-
+    
     save_photo_library(data)
     return jsonify({"success": True})
-
-@app.route("/api/photo-library/import-usb", methods=["POST"])
-def import_photos_usb():
-    usb_path = "/media/usb/photos"
-    folder = request.json.get('folder', 'default')
-
-    if not os.path.exists(usb_path):
-        return jsonify({"success": False, "message": "USB drive with 'photos' folder not found."}), 400
-
-    data = load_photo_library()
-    folder_path = os.path.join(PHOTOS_FOLDER, folder)
-    os.makedirs(folder_path, exist_ok=True)
-    os.chmod(folder_path, 0o775)
-
-    imported = []
-    for photo in os.listdir(usb_path):
-        src = os.path.join(usb_path, photo)
-        dest = os.path.join(folder_path, secure_filename(photo))
-        shutil.copy(src, dest)
-        os.chmod(dest, 0o664)
-        data["photos"][photo] = folder
-        imported.append(photo)
-
-    save_photo_library(data)
-    return jsonify({"success": True, "imported": imported})
 
 @app.route("/api/photo-library/manage", methods=["POST"])
 def manage_photos():
     action = request.json.get("action")
     data = load_photo_library()
-
+    
     if action == "create_folder":
         folder_name = request.json.get("folder")
         if folder_name not in data["folders"]:
@@ -212,19 +502,18 @@ def manage_photos():
             os.makedirs(folder_path, exist_ok=True)
             os.chmod(folder_path, 0o775)
             data["folders"].append(folder_name)
-
+    
     elif action == "delete_folder":
         folder_name = request.json.get("folder")
         if folder_name in data["folders"] and folder_name != 'default':
             shutil.rmtree(os.path.join(PHOTOS_FOLDER, folder_name))
             data["folders"].remove(folder_name)
             data["photos"] = {k: v for k, v in data["photos"].items() if v != folder_name}
-
+    
     elif action == "move_photo":
         photo = request.json.get("photo")
         new_folder = request.json.get("new_folder")
         old_folder = data["photos"].get(photo, 'default')
-
         old_path = os.path.join(PHOTOS_FOLDER, old_folder, photo)
         new_path = os.path.join(PHOTOS_FOLDER, new_folder, photo)
         
@@ -234,17 +523,18 @@ def manage_photos():
             data["photos"][photo] = new_folder
         else:
             return jsonify({"success": False, "error": "Photo does not exist"}), 404
-
+    
     elif action == "delete_photo":
         photo = request.json.get("photo")
         folder = data["photos"].get(photo, 'default')
         photo_path = os.path.join(PHOTOS_FOLDER, folder, photo)
+        
         if os.path.exists(photo_path):
             os.remove(photo_path)
             del data["photos"][photo]
         else:
             return jsonify({"success": False, "error": "Photo does not exist"}), 404
-
+    
     save_photo_library(data)
     return jsonify({"success": True, "data": data})
 
