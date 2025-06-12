@@ -492,6 +492,12 @@
                     🔍 Scan for USB Drive
                 </button>
                 
+                <div class="mt-3">
+                    <button class="btn btn-gradient-warning touch-btn" onclick="forceMountUSB()" style="min-width: 250px;">
+                        🔧 Force Mount USB
+                    </button>
+                </div>
+                
                 <!-- USB Debug Panel -->
                 <div class="usb-debug mt-3" id="usbDebugPanel" style="display: none;">
                     <h6>🔧 USB Debug Information</h6>
@@ -937,14 +943,18 @@
             });
     }
     
+    // Periodic USB scanning
+    function periodicUSBScan() {
+        if (document.getElementById('usbStatusIcon').innerHTML === '💾') {
+            scanForUSB();
+        }
+    }
+    
     // Toggle debug panel
     function toggleDebug() {
         const panel = document.getElementById('usbDebugPanel');
         panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
     }
-    
-    // Show debug information
-    function showDebugInfo() {
         fetch('/api/photo-library/debug-usb')
             .then(res => res.json())
             .then(data => {
@@ -959,6 +969,29 @@
                     • Last scan: ${new Date().toLocaleTimeString()}<br>
                     <br><strong>Mount output:</strong><br>
                     <pre style="font-size: 10px; max-height: 150px; overflow-y: auto;">${data.mount_output || 'No mount info'}</pre>
+                `;
+            })
+    // Show debug information
+    function showDebugInfo() {
+        fetch('/api/photo-library/debug-usb')
+            .then(res => res.json())
+            .then(data => {
+                const debugDiv = document.getElementById('debugInfo');
+                debugDiv.innerHTML = `
+                    <strong>USB Detection Debug:</strong><br>
+                    • Detected device: ${data.detected_device || 'None'}<br>
+                    • Filesystem: ${data.filesystem_type || 'Unknown'}<br>
+                    • Current mount: ${data.current_mount || 'Not mounted'}<br>
+                    • Checked paths: ${data.checked_paths ? data.checked_paths.join(', ') : 'None'}<br>
+                    • Existing paths: ${data.existing_paths ? data.existing_paths.join(', ') : 'None'}<br>
+                    • Mounted paths: ${data.mounted_paths ? data.mounted_paths.join(', ') : 'None'}<br>
+                    • Accessible paths: ${data.accessible_paths ? data.accessible_paths.length : 0}<br>
+                    ${data.mount_attempt_result ? 
+                        `• Mount attempt: ${data.mount_attempt_result.message}<br>` : ''
+                    }
+                    • Last scan: ${new Date().toLocaleTimeString()}<br>
+                    <br><strong>lsblk output:</strong><br>
+                    <pre style="font-size: 10px; max-height: 150px; overflow-y: auto;">${data.lsblk_output || 'No lsblk info'}</pre>
                 `;
             })
             .catch(err => {
@@ -1010,11 +1043,54 @@
             });
     }
     
-    // Periodic USB scanning
-    function periodicUSBScan() {
-        if (document.getElementById('usbStatusIcon').innerHTML === '💾') {
-            scanForUSB();
-        }
+    // Force mount USB
+    function forceMountUSB() {
+        const statusIcon = document.getElementById('usbStatusIcon');
+        const statusText = document.getElementById('usbStatusText');
+        
+        statusIcon.innerHTML = '🔧';
+        statusIcon.classList.add('pulse-animation');
+        statusText.textContent = 'Force mounting USB drive...';
+        
+        fetch('/api/photo-library/force-mount', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({})
+        })
+        .then(res => res.json())
+        .then(data => {
+            statusIcon.classList.remove('pulse-animation');
+            
+            if (data.success) {
+                statusIcon.innerHTML = '✅';
+                statusText.innerHTML = `
+                    USB Force Mounted Successfully!<br>
+                    <small class="text-muted">${data.message}</small>
+                `;
+                
+                // Auto-scan after successful mount
+                setTimeout(() => scanForUSB(), 1000);
+            } else {
+                statusIcon.innerHTML = '❌';
+                statusText.innerHTML = `
+                    Force Mount Failed<br>
+                    <small class="text-muted">${data.error}</small>
+                `;
+                
+                // Show debug info on failure
+                document.getElementById('usbDebugPanel').style.display = 'block';
+                showDebugInfo();
+            }
+        })
+        .catch(err => {
+            statusIcon.classList.remove('pulse-animation');
+            statusIcon.innerHTML = '⚠️';
+            statusText.innerHTML = `
+                Force Mount Error<br>
+                <small class="text-muted">${err.message}</small>
+            `;
+            console.error('Force mount error:', err);
+        });
     }
     
     // Show USB import modal
