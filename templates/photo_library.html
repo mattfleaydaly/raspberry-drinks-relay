@@ -703,19 +703,22 @@
         fetch('/api/photo-library/debug-usb')
             .then(res => res.json())
             .then(data => {
-                document.getElementById('debugInfo').innerHTML = `
+                const debugDiv = document.getElementById('debugInfo');
+                debugDiv.innerHTML = `
                     <strong>USB Detection Debug:</strong><br>
-                    • Mount points found: ${data.mountPoints?.length || 0}<br>
-                    • Media directories: ${data.mediaDirectories?.join(', ') || 'None'}<br>
-                    • Block devices: ${data.blockDevices?.join(', ') || 'None'}<br>
-                    • Last scan time: ${new Date().toLocaleTimeString()}<br>
-                    • udisks2 installed: ${data.udisks2 ? 'Yes' : 'No'}<br>
-                    <br><strong>Detected paths:</strong><br>
-                    ${data.detailedPaths?.map(p => `• ${p}`).join('<br>') || '• No USB paths detected'}
+                    • Checked paths: ${data.checked_paths ? data.checked_paths.join(', ') : 'None'}<br>
+                    • Existing paths: ${data.existing_paths ? data.existing_paths.join(', ') : 'None'}<br>
+                    • Mounted paths: ${data.mounted_paths ? data.mounted_paths.join(', ') : 'None'}<br>
+                    • Accessible paths: ${data.accessible_paths ? data.accessible_paths.length : 0}<br>
+                    • udisks2 installed: ${data.udisks2_installed ? 'Yes' : 'No'}<br>
+                    • Last scan: ${new Date().toLocaleTimeString()}<br>
+                    <br><strong>Mount output:</strong><br>
+                    <pre style="font-size: 10px; max-height: 150px; overflow-y: auto;">${data.mount_output || 'No mount info'}</pre>
                 `;
             })
             .catch(err => {
                 document.getElementById('debugInfo').innerHTML = `<strong>Debug Error:</strong> ${err.message}`;
+                console.error('Debug error:', err);
             });
     }
     
@@ -724,15 +727,18 @@
         fetch('/api/photo-library/check-mounts')
             .then(res => res.json())
             .then(data => {
-                document.getElementById('debugInfo').innerHTML = `
-                    <strong>Mount Points:</strong><br>
-                    ${data.mounts?.map(m => `• ${m}`).join('<br>') || '• No mounts found'}<br>
+                const debugDiv = document.getElementById('debugInfo');
+                debugDiv.innerHTML = `
+                    <strong>Current Mount Points:</strong><br>
+                    ${data.mounts ? data.mounts.slice(0, 10).map(m => `• ${m}`).join('<br>') : '• No mounts found'}<br>
                     <br><strong>USB-like mounts:</strong><br>
-                    ${data.usbMounts?.map(m => `• ${m}`).join('<br>') || '• No USB mounts detected'}
+                    ${data.usbMounts ? data.usbMounts.map(m => `• ${m}`).join('<br>') : '• No USB mounts detected'}<br>
+                    <br><small>Showing first 10 mounts only</small>
                 `;
             })
             .catch(err => {
                 document.getElementById('debugInfo').innerHTML = `<strong>Mount Check Error:</strong> ${err.message}`;
+                console.error('Mount check error:', err);
             });
     }
     
@@ -741,19 +747,21 @@
         fetch('/api/photo-library/list-media')
             .then(res => res.json())
             .then(data => {
-                document.getElementById('debugInfo').innerHTML = `
+                const debugDiv = document.getElementById('debugInfo');
+                debugDiv.innerHTML = `
                     <strong>/media directory contents:</strong><br>
-                    ${data.media?.map(m => `• ${m}`).join('<br>') || '• /media is empty'}<br>
+                    ${data.media && data.media.length > 0 ? data.media.map(m => `• ${m}`).join('<br>') : '• /media is empty'}<br>
                     <br><strong>/mnt directory contents:</strong><br>
-                    ${data.mnt?.map(m => `• ${m}`).join('<br>') || '• /mnt is empty'}<br>
-                    <br><strong>Suggestions:</strong><br>
-                    • Try: sudo mount /dev/sda1 /mnt/usb<br>
-                    • Check: lsblk -f<br>
-                    • Verify: ls -la /dev/sd*
+                    ${data.mnt && data.mnt.length > 0 ? data.mnt.map(m => `• ${m}`).join('<br>') : '• /mnt is empty'}<br>
+                    <br><strong>Manual mount commands to try:</strong><br>
+                    • sudo mount /dev/sda1 /mnt/usb<br>
+                    • sudo chmod 755 /mnt/usb<br>
+                    • ls -la /mnt/usb/
                 `;
             })
             .catch(err => {
                 document.getElementById('debugInfo').innerHTML = `<strong>Media List Error:</strong> ${err.message}`;
+                console.error('Media list error:', err);
             });
     }
     
