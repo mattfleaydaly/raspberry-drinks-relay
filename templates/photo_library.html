@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Photo Library{% endblock %}
+{% block header %}Photo Library{% endblock %}
+{% block content %}
+<div class="container py-4">
+    <div class="mb-3">
+        <input type="file" id="photoUpload" multiple class="form-control">
+        <select id="folderSelect" class="form-select mt-2"></select>
+        <button class="btn btn-primary mt-2" onclick="uploadPhotos()">Upload Photos</button>
+        <button class="btn btn-secondary mt-2" onclick="importFromUSB()">Import from USB</button>
+    </div>
+
+    <div class="mt-4" id="photosContainer"></div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="/static/js/photo_library.js"></script>
+{% endblock %}
