@@ -1,18 +1,802 @@
 {% extends "base.html" %}
-{% block title %}Photo Library{% endblock %}
-{% block header %}Photo Library{% endblock %}
-{% block content %}
-<div class="container py-4">
-    <div class="mb-3">
-        <input type="file" id="photoUpload" multiple class="form-control">
-        <select id="folderSelect" class="form-select mt-2"></select>
-        <button class="btn btn-primary mt-2" onclick="uploadPhotos()">Upload Photos</button>
-        <button class="btn btn-secondary mt-2" onclick="importFromUSB()">Import from USB</button>
-    </div>
 
-    <div class="mt-4" id="photosContainer"></div>
+{% block title %}Photo Library{% endblock %}
+
+{% block header %}📸 Smart Photo Library{% endblock %}
+
+{% block content %}
+<style>
+    :root {
+        --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --success-gradient: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        --danger-gradient: linear-gradient(135deg, #fc466b 0%, #3f5efb 100%);
+        --warning-gradient: linear-gradient(135deg, #fdbb2d 0%, #22c1c3 100%);
+    }
+    
+    .touch-btn {
+        min-height: 70px;
+        font-size: 20px;
+        font-weight: 600;
+        margin: 10px 5px;
+        border-radius: 15px;
+        touch-action: manipulation;
+        transition: all 0.3s ease;
+        border: none;
+    }
+    
+    .touch-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    }
+    
+    .btn-gradient-primary { background: var(--primary-gradient); color: white; }
+    .btn-gradient-success { background: var(--success-gradient); color: white; }
+    .btn-gradient-danger { background: var(--danger-gradient); color: white; }
+    .btn-gradient-warning { background: var(--warning-gradient); color: white; }
+    
+    .usb-status {
+        background: white;
+        border-radius: 20px;
+        padding: 30px;
+        margin: 20px 0;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        text-align: center;
+    }
+    
+    .usb-icon {
+        font-size: 4rem;
+        margin-bottom: 20px;
+        display: block;
+    }
+    
+    .folder-btn {
+        min-height: 90px;
+        font-size: 22px;
+        margin: 15px 10px;
+        border-radius: 20px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+    }
+    
+    .folder-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    }
+    
+    .folder-btn.active {
+        background: var(--success-gradient);
+        color: white;
+        border: none;
+    }
+    
+    .usb-photo-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 20px;
+        padding: 20px;
+    }
+    
+    .photo-card {
+        position: relative;
+        border: 4px solid transparent;
+        border-radius: 15px;
+        overflow: hidden;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background: white;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    
+    .photo-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 30px rgba(0,0,0,0.2);
+    }
+    
+    .photo-card.selected {
+        border-color: #11998e;
+        transform: scale(1.05) translateY(-5px);
+        box-shadow: 0 15px 30px rgba(17, 153, 142, 0.4);
+    }
+    
+    .photo-card img {
+        width: 100%;
+        height: 140px;
+        object-fit: cover;
+    }
+    
+    .photo-card .select-overlay {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: var(--success-gradient);
+        color: white;
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        font-weight: bold;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+    }
+    
+    .photo-card.selected .select-overlay {
+        display: flex;
+    }
+    
+    .photo-library-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 25px;
+        padding: 20px 0;
+        margin-bottom: 100px; /* Space for footer navigation */
+    }
+    
+    .folder-section {
+        background: white;
+        border-radius: 20px;
+        padding: 25px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+    }
+    
+    .folder-section:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+    }
+    
+    .folder-header {
+        background: var(--primary-gradient);
+        color: white;
+        padding: 15px 20px;
+        margin: -25px -25px 20px -25px;
+        border-radius: 20px 20px 0 0;
+        font-size: 1.5rem;
+        font-weight: 600;
+    }
+    
+    .mini-photo {
+        width: 100%;
+        height: 120px;
+        object-fit: cover;
+        border-radius: 10px;
+        margin-bottom: 10px;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    }
+    
+    .keyboard-btn {
+        min-height: 50px;
+        font-size: 16px;
+        font-weight: 600;
+        border-radius: 10px;
+        margin: 2px;
+        border: 2px solid #e0e0e0;
+        background: white;
+        transition: all 0.2s ease;
+    }
+    
+    .keyboard-btn:hover, .keyboard-btn:active {
+        background: var(--primary-gradient);
+        color: white;
+        border-color: transparent;
+        transform: scale(1.05);
+    }
+    
+    .selected-count {
+        font-size: 22px;
+        font-weight: bold;
+        background: var(--primary-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    
+    .import-footer {
+        position: sticky;
+        bottom: 0;
+        background: linear-gradient(to top, white 0%, rgba(255,255,255,0.95) 100%);
+        border-top: 2px solid #dee2e6;
+        padding: 25px;
+        margin: 0 -20px -20px -20px;
+        backdrop-filter: blur(10px);
+    }
+    
+    .pulse-animation {
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+    
+    .loading-spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid var(--primary-gradient);
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        animation: spin 1s linear infinite;
+        margin: 20px auto;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    /* Ensure content doesn't get hidden behind footer */
+    .container-fluid {
+        padding-bottom: 120px;
+    }
+</style>
+
+<div class="container-fluid py-4">
+    <!-- USB Import Section -->
+    <div class="row justify-content-center mb-5">
+        <div class="col-lg-8">
+            <div class="usb-status">
+                <div id="usbStatusIcon" class="usb-icon">💾</div>
+                <h3 id="usbStatusText">Ready to Import Photos</h3>
+                <p class="text-muted mb-4">Insert a USB drive with photos to get started</p>
+                <button class="btn btn-gradient-success touch-btn" onclick="scanForUSB()" style="min-width: 300px;">
+                    🔍 Scan for USB Drive
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Folder Selection -->
+    <div class="row mb-4" id="folderSelection" style="display: none;">
+        <div class="col-12">
+            <div class="text-center mb-4">
+                <h3>📁 Choose Destination Folder</h3>
+                <p class="text-muted">Select where to save your imported photos</p>
+            </div>
+            <div id="folderButtons" class="d-flex flex-wrap justify-content-center"></div>
+            <div class="text-center">
+                <button class="btn btn-gradient-warning folder-btn" onclick="createNewFolder()">
+                    ➕ Create New Folder
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Photo Library Display -->
+    <div id="photosContainer"></div>
+</div>
+
+<!-- USB Import Modal -->
+<div class="modal fade" id="usbImportModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" style="border-radius: 20px; border: none;">
+            <div class="modal-header" style="background: var(--primary-gradient); color: white; border-radius: 20px 20px 0 0;">
+                <h5 class="modal-title">🖼️ Select Photos from USB</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <button class="btn btn-gradient-primary touch-btn" onclick="toggleSelectAll()">
+                        ✅ Select All / None
+                    </button>
+                    <span class="selected-count">0 photos selected</span>
+                </div>
+                
+                <div id="loadingIndicator" class="text-center" style="display: none;">
+                    <div class="loading-spinner"></div>
+                    <p>Loading USB photos...</p>
+                </div>
+                
+                <div id="usbPhotosGrid" class="usb-photo-grid">
+                    <!-- USB photos will be loaded here -->
+                </div>
+                
+                <div class="import-footer">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="selected-count" id="footerCount">0 photos selected</span>
+                        <div>
+                            <button class="btn btn-secondary touch-btn me-3" data-bs-dismiss="modal">❌ Cancel</button>
+                            <button class="btn btn-gradient-success touch-btn" onclick="importSelectedPhotos()">
+                                📥 Import Selected Photos
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- New Folder Modal -->
+<div class="modal fade" id="newFolderModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" style="border-radius: 20px; border: none;">
+            <div class="modal-header" style="background: var(--warning-gradient); color: white; border-radius: 20px 20px 0 0;">
+                <h5 class="modal-title">📁 Create New Folder</h5>
+            </div>
+            <div class="modal-body">
+                <div class="mb-4">
+                    <input type="text" id="folderNameInput" class="form-control touch-btn" placeholder="Folder name will appear here" readonly style="font-size: 24px; text-align: center;">
+                </div>
+                
+                <div id="virtualKeyboard">
+                    <div class="row g-1 mb-2">
+                        <div class="col"><button class="keyboard-btn w-100" onclick="addChar('1')">1</button></div>
+                        <div class="col"><button class="keyboard-btn w-100" onclick="addChar('2')">2</button></div>
+                        <div class="col"><button class="keyboard-btn w-100" onclick="addChar('3')">3</button></div>
+                        <div class="col"><button class="keyboard-btn w-100" onclick="addChar('4')">4</button></div>
+                        <div class="col"><button class="keyboard-btn w-100" onclick="addChar('5')">5</button></div>
+                        <div class="col"><button class="keyboard-btn w-100" onclick="addChar('6')">6</button></div>
+                        <div class="col"><button class="keyboard-btn w-100" onclick="addChar('7')">7</button></div>
+                        <div class="col"><button class="keyboard-btn w-100" onclick="addChar('8')">8</button></div>
+                        <div class="col"><button class="keyboard-btn w-100" onclick="addChar('9')">9</button></div>
+                        <div class="col"><button class="keyboard-btn w-100" onclick="addChar('0')">0</button></div>
+                    </div>
+                    <div class="row g-1 mb-2">
+                        <div class="col"><button class="keyboard-btn w-100" onclick="addChar('Q')">Q</button></div>
+                        <div class="col"><button class="keyboard-btn w-100" onclick="addChar('W')">W</button></div>
+                        <div class="col"><button class="keyboard-btn w-100" onclick="addChar('E')">E</button></div>
+                        <div class="col"><button class="keyboard-btn w-100" onclick="addChar('R')">R</button></div>
+                        <div class="col"><button class="keyboard-btn w-100" onclick="addChar('T')">T</button></div>
+                        <div class="col"><button class="keyboard-btn w-100" onclick="addChar('Y')">Y</button></div>
+                        <div class="col"><button class="keyboard-btn w-100" onclick="addChar('U')">U</button></div>
+                        <div class="col"><button class="keyboard-btn w-100" onclick="addChar('I')">I</button></div>
+                        <div class="col"><button class="keyboard-btn w-100" onclick="addChar('O')">O</button></div>
+                        <div class="col"><button class="keyboard-btn w-100" onclick="addChar('P')">P</button></div>
+                    </div>
+                    <div class="row g-1 mb-2">
+                        <div class="col"><button class="keyboard-btn w-100" onclick="addChar('A')">A</button></div>
+                        <div class="col"><button class="keyboard-btn w-100" onclick="addChar('S')">S</button></div>
+                        <div class="col"><button class="keyboard-btn w-100" onclick="addChar('D')">D</button></div>
+                        <div class="col"><button class="keyboard-btn w-100" onclick="addChar('F')">F</button></div>
+                        <div class="col"><button class="keyboard-btn w-100" onclick="addChar('G')">G</button></div>
+                        <div class="col"><button class="keyboard-btn w-100" onclick="addChar('H')">H</button></div>
+                        <div class="col"><button class="keyboard-btn w-100" onclick="addChar('J')">J</button></div>
+                        <div class="col"><button class="keyboard-btn w-100" onclick="addChar('K')">K</button></div>
+                        <div class="col"><button class="keyboard-btn w-100" onclick="addChar('L')">L</button></div>
+                    </div>
+                    <div class="row g-1 mb-2">
+                        <div class="col"><button class="keyboard-btn w-100" onclick="addChar('Z')">Z</button></div>
+                        <div class="col"><button class="keyboard-btn w-100" onclick="addChar('X')">X</button></div>
+                        <div class="col"><button class="keyboard-btn w-100" onclick="addChar('C')">C</button></div>
+                        <div class="col"><button class="keyboard-btn w-100" onclick="addChar('V')">V</button></div>
+                        <div class="col"><button class="keyboard-btn w-100" onclick="addChar('B')">B</button></div>
+                        <div class="col"><button class="keyboard-btn w-100" onclick="addChar('N')">N</button></div>
+                        <div class="col"><button class="keyboard-btn w-100" onclick="addChar('M')">M</button></div>
+                        <div class="col-2"><button class="keyboard-btn w-100" onclick="backspace()" style="background: var(--danger-gradient); color: white;">⌫</button></div>
+                    </div>
+                    <div class="row g-1">
+                        <div class="col-3"><button class="keyboard-btn w-100" onclick="addChar(' ')">Space</button></div>
+                        <div class="col-3"><button class="keyboard-btn w-100" onclick="addChar('_')">_</button></div>
+                        <div class="col-3"><button class="keyboard-btn w-100" onclick="addChar('-')">-</button></div>
+                        <div class="col-3"><button class="keyboard-btn w-100" onclick="clearAll()" style="background: var(--warning-gradient); color: white;">Clear</button></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary touch-btn" data-bs-dismiss="modal">❌ Cancel</button>
+                <button type="button" class="btn btn-gradient-success touch-btn" onclick="saveNewFolder()">✅ Create Folder</button>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
+
 {% block scripts %}
-<script src="/static/js/photo_library.js"></script>
+<script>
+    // Global Variables
+    let selectedFolder = '';
+    let selectedPhotos = new Set();
+    let usbPhotos = [];
+    let folders = [];
+    
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        loadLibrary();
+        setTimeout(scanForUSB, 1000);
+        setInterval(periodicUSBScan, 10000);
+    });
+    
+    // Load photo library
+    function loadLibrary() {
+        fetch('/api/photo-library/manage', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({})
+        })
+        .then(res => res.json())
+        .then(data => {
+            folders = data.data.folders;
+            updateLibraryView(data.data);
+        })
+        .catch(err => console.error('Error loading library:', err));
+    }
+    
+    // Update library view
+    function updateLibraryView(data) {
+        updateFolderButtons(data.folders);
+        displayPhotos(data);
+    }
+    
+    // Update folder buttons
+    function updateFolderButtons(folderList) {
+        const folderButtons = document.getElementById('folderButtons');
+        folderButtons.innerHTML = '';
+        
+        folderList.forEach(folder => {
+            const btn = document.createElement('button');
+            btn.className = `btn folder-btn ${selectedFolder === folder ? 'active' : 'btn-outline-primary'}`;
+            btn.innerHTML = `📁 ${folder}`;
+            btn.onclick = () => selectFolder(folder);
+            folderButtons.appendChild(btn);
+        });
+    }
+    
+    // Select folder
+    function selectFolder(folder) {
+        selectedFolder = folder;
+        document.getElementById('folderSelection').style.display = 'block';
+        updateFolderButtons(folders);
+        
+        document.querySelector('.usb-status').scrollIntoView({ 
+            behavior: 'smooth',
+            block: 'center'
+        });
+    }
+    
+    // Display photos in library
+    function displayPhotos(data) {
+        const photosContainer = document.getElementById('photosContainer');
+        photosContainer.innerHTML = '';
+        
+        if (data.folders.length === 0) {
+            photosContainer.innerHTML = `
+                <div class="text-center usb-status">
+                    <div class="usb-icon">📷</div>
+                    <h3>No Photo Folders Yet</h3>
+                    <p class="text-muted">Create your first folder and start importing photos!</p>
+                </div>
+            `;
+            return;
+        }
+        
+        const libraryTitle = document.createElement('div');
+        libraryTitle.className = 'text-center mb-5';
+        libraryTitle.innerHTML = '<h2>📚 Your Photo Library</h2>';
+        photosContainer.appendChild(libraryTitle);
+        
+        const gridContainer = document.createElement('div');
+        gridContainer.className = 'photo-library-grid';
+        photosContainer.appendChild(gridContainer);
+        
+        data.folders.forEach(folder => {
+            const folderSection = document.createElement('div');
+            folderSection.className = 'folder-section';
+            
+            const folderPhotos = Object.entries(data.photos).filter(([photo, pFolder]) => pFolder === folder);
+            const photoCount = folderPhotos.length;
+            
+            folderSection.innerHTML = `
+                <div class="folder-header">📁 ${folder} (${photoCount} photos)</div>
+                <div class="folder-photos" id="folder-${folder}"></div>
+            `;
+            
+            gridContainer.appendChild(folderSection);
+            
+            const folderPhotosDiv = document.getElementById(`folder-${folder}`);
+            folderPhotos.slice(0, 6).forEach(([photo, pFolder]) => {
+                const photoDiv = document.createElement('div');
+                photoDiv.className = 'mb-3';
+                photoDiv.innerHTML = `
+                    <img src="/photos/albums/${folder}/${photo}" class="mini-photo" alt="${photo}">
+                    <button class="btn btn-gradient-danger btn-sm touch-btn w-100" onclick="deletePhoto('${photo}')">
+                        🗑️ Delete
+                    </button>
+                `;
+                folderPhotosDiv.appendChild(photoDiv);
+            });
+            
+            if (photoCount > 6) {
+                const moreDiv = document.createElement('div');
+                moreDiv.className = 'text-center text-muted';
+                moreDiv.innerHTML = `<small>... and ${photoCount - 6} more photos</small>`;
+                folderPhotosDiv.appendChild(moreDiv);
+            }
+        });
+    }
+    
+    // Scan for USB drives
+    function scanForUSB() {
+        const statusIcon = document.getElementById('usbStatusIcon');
+        const statusText = document.getElementById('usbStatusText');
+        
+        statusIcon.innerHTML = '🔍';
+        statusIcon.classList.add('pulse-animation');
+        statusText.textContent = 'Scanning for USB drives...';
+        
+        fetch('/api/photo-library/scan-usb')
+            .then(res => res.json())
+            .then(data => {
+                statusIcon.classList.remove('pulse-animation');
+                
+                if (data.found) {
+                    statusIcon.innerHTML = '✅';
+                    statusText.textContent = `USB Drive Found: ${data.name}`;
+                    
+                    if (!selectedFolder) {
+                        document.getElementById('folderSelection').style.display = 'block';
+                        statusText.innerHTML += '<br><small class="text-muted">Please select a destination folder first</small>';
+                    } else {
+                        setTimeout(() => showUSBImport(), 1000);
+                    }
+                } else {
+                    statusIcon.innerHTML = '❌';
+                    statusText.textContent = 'No USB drive found';
+                    setTimeout(() => {
+                        statusIcon.innerHTML = '💾';
+                        statusText.textContent = 'Ready to Import Photos';
+                    }, 3000);
+                }
+            })
+            .catch(err => {
+                statusIcon.classList.remove('pulse-animation');
+                statusIcon.innerHTML = '⚠️';
+                statusText.textContent = 'Error scanning for USB drives';
+                console.error('USB scan error:', err);
+            });
+    }
+    
+    // Periodic USB scanning
+    function periodicUSBScan() {
+        if (document.getElementById('usbStatusIcon').innerHTML === '💾') {
+            scanForUSB();
+        }
+    }
+    
+    // Show USB import modal
+    function showUSBImport() {
+        if (!selectedFolder) {
+            alert('Please select a destination folder first!');
+            return;
+        }
+        
+        document.getElementById('loadingIndicator').style.display = 'block';
+        document.getElementById('usbPhotosGrid').style.display = 'none';
+        
+        const modal = new bootstrap.Modal(document.getElementById('usbImportModal'));
+        modal.show();
+        
+        fetch('/api/photo-library/list-usb')
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('loadingIndicator').style.display = 'none';
+                document.getElementById('usbPhotosGrid').style.display = 'grid';
+                
+                usbPhotos = data.photos;
+                displayUSBPhotos(data.photos);
+            })
+            .catch(err => {
+                document.getElementById('loadingIndicator').style.display = 'none';
+                document.getElementById('usbPhotosGrid').innerHTML = `
+                    <div style="grid-column: 1 / -1; text-align: center;">
+                        <div class="usb-icon">⚠️</div>
+                        <h4>Error Loading USB Photos</h4>
+                        <p class="text-muted">Please check if the USB drive is properly connected</p>
+                    </div>
+                `;
+                console.error('USB photos error:', err);
+            });
+    }
+    
+    // Display USB photos
+    function displayUSBPhotos(photos) {
+        const grid = document.getElementById('usbPhotosGrid');
+        grid.innerHTML = '';
+        
+        if (photos.length === 0) {
+            grid.innerHTML = `
+                <div style="grid-column: 1 / -1; text-align: center;">
+                    <div class="usb-icon">📷</div>
+                    <h4>No Photos Found</h4>
+                    <p class="text-muted">No image files found on the USB drive</p>
+                </div>
+            `;
+            return;
+        }
+        
+        photos.forEach((photo, index) => {
+            const photoCard = document.createElement('div');
+            photoCard.className = 'photo-card';
+            photoCard.onclick = () => togglePhotoSelection(index);
+            photoCard.innerHTML = `
+                <img src="/api/photo-library/usb-preview/${encodeURIComponent(photo.name)}" 
+                     alt="${photo.name}" 
+                     onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE0MCIgdmlld0JveD0iMCAwIDIwMCAxNDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMTQwIiBmaWxsPSIjZjVmNWY1Ii8+Cjx0ZXh0IHg9IjEwMCIgeT0iNzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSI+SW1hZ2UgTm90IEZvdW5kPC90ZXh0Pgo8L3N2Zz4K'">
+                <div class="select-overlay">✓</div>
+                <div class="p-2 text-center small text-truncate" title="${photo.name}">${photo.name}</div>
+            `;
+            grid.appendChild(photoCard);
+        });
+        
+        updateSelectedCount();
+    }
+    
+    // Toggle photo selection
+    function togglePhotoSelection(index) {
+        const photoCard = document.querySelectorAll('.photo-card')[index];
+        if (selectedPhotos.has(index)) {
+            selectedPhotos.delete(index);
+            photoCard.classList.remove('selected');
+        } else {
+            selectedPhotos.add(index);
+            photoCard.classList.add('selected');
+        }
+        updateSelectedCount();
+    }
+    
+    // Toggle select all photos
+    function toggleSelectAll() {
+        if (selectedPhotos.size === usbPhotos.length) {
+            // Deselect all
+            selectedPhotos.clear();
+            document.querySelectorAll('.photo-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+        } else {
+            // Select all
+            selectedPhotos.clear();
+            usbPhotos.forEach((_, index) => selectedPhotos.add(index));
+            document.querySelectorAll('.photo-card').forEach(card => {
+                card.classList.add('selected');
+            });
+        }
+        updateSelectedCount();
+    }
+    
+    // Update selected count display
+    function updateSelectedCount() {
+        const count = selectedPhotos.size;
+        const countText = `${count} photos selected`;
+        document.querySelector('.selected-count').textContent = countText;
+        const footerCount = document.getElementById('footerCount');
+        if (footerCount) {
+            footerCount.textContent = countText;
+        }
+    }
+    
+    // Import selected photos
+    function importSelectedPhotos() {
+        if (selectedPhotos.size === 0) {
+            alert('Please select at least one photo to import!');
+            return;
+        }
+        
+        const selectedPhotoNames = Array.from(selectedPhotos).map(index => usbPhotos[index].name);
+        
+        // Show loading state
+        const importBtn = document.querySelector('[onclick="importSelectedPhotos()"]');
+        const originalText = importBtn.innerHTML;
+        importBtn.innerHTML = '⏳ Importing...';
+        importBtn.disabled = true;
+        
+        fetch('/api/photo-library/import-usb', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                folder: selectedFolder,
+                photos: selectedPhotoNames
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                bootstrap.Modal.getInstance(document.getElementById('usbImportModal')).hide();
+                selectedPhotos.clear();
+                
+                // Update USB status
+                document.getElementById('usbStatusIcon').innerHTML = '✅';
+                document.getElementById('usbStatusText').textContent = `Successfully imported ${selectedPhotoNames.length} photos!`;
+                
+                // Reload library
+                loadLibrary();
+                
+                // Reset status after a few seconds
+                setTimeout(() => {
+                    document.getElementById('usbStatusIcon').innerHTML = '💾';
+                    document.getElementById('usbStatusText').textContent = 'Ready to Import Photos';
+                }, 5000);
+            } else {
+                alert('Error importing photos: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(err => {
+            alert('Error importing photos: ' + err.message);
+            console.error('Import error:', err);
+        })
+        .finally(() => {
+            importBtn.innerHTML = originalText;
+            importBtn.disabled = false;
+        });
+    }
+    
+    // Delete photo
+    function deletePhoto(photo) {
+        if (confirm('🗑️ Are you sure you want to delete this photo?\n\nThis action cannot be undone.')) {
+            fetch('/api/photo-library/manage', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({action: 'delete_photo', photo})
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    loadLibrary();
+                } else {
+                    alert('Error deleting photo: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(err => {
+                alert('Error deleting photo: ' + err.message);
+                console.error('Delete error:', err);
+            });
+        }
+    }
+    
+    // Create new folder
+    function createNewFolder() {
+        document.getElementById('folderNameInput').value = '';
+        new bootstrap.Modal(document.getElementById('newFolderModal')).show();
+    }
+    
+    // Save new folder
+    function saveNewFolder() {
+        const folderName = document.getElementById('folderNameInput').value.trim();
+        if (!folderName) {
+            alert('Please enter a folder name!');
+            return;
+        }
+        
+        if (folders.includes(folderName)) {
+            alert('A folder with this name already exists!');
+            return;
+        }
+        
+        fetch('/api/photo-library/create-folder', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({folder: folderName})
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                bootstrap.Modal.getInstance(document.getElementById('newFolderModal')).hide();
+                loadLibrary();
+                setTimeout(() => selectFolder(folderName), 500);
+            } else {
+                alert('Error creating folder: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(err => {
+            alert('Error creating folder: ' + err.message);
+            console.error('Create folder error:', err);
+        });
+    }
+    
+    // Virtual keyboard functions
+    function addChar(char) {
+        const input = document.getElementById('folderNameInput');
+        input.value += char;
+    }
+    
+    function backspace() {
+        const input = document.getElementById('folderNameInput');
+        input.value = input.value.slice(0, -1);
+    }
+    
+    function clearAll() {
+        document.getElementById('folderNameInput').value = '';
+    }
+</script>
 {% endblock %}
