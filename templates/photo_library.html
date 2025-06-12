@@ -296,6 +296,137 @@
     
     .modal-body {
         background: var(--bg-secondary);
+        /* Enable touch scrolling */
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+    }
+    
+    /* Enable drag/touch scrolling for all scrollable areas */
+    .usb-photo-grid {
+        /* Enable touch scrolling */
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+        /* Enable drag scrolling */
+        cursor: grab;
+    }
+    
+    .usb-photo-grid:active {
+        cursor: grabbing;
+    }
+    
+    /* Make modal draggable/scrollable */
+    .modal-dialog {
+        /* Enable touch interactions */
+        touch-action: pan-y pinch-zoom;
+    }
+    
+    .modal-body {
+        /* Enable smooth scrolling */
+        scroll-behavior: smooth;
+        /* Prevent overscroll bounce */
+        overscroll-behavior-y: contain;
+    }
+    
+    /* Photo grid scrolling */
+    .photo-library-grid {
+        /* Enable touch scrolling */
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+        scroll-behavior: smooth;
+    }
+    
+    /* Custom scrollbar for dark mode */
+    .modal-body::-webkit-scrollbar,
+    .usb-photo-grid::-webkit-scrollbar,
+    .photo-library-grid::-webkit-scrollbar {
+        width: 8px;
+    }
+    
+    .modal-body::-webkit-scrollbar-track,
+    .usb-photo-grid::-webkit-scrollbar-track,
+    .photo-library-grid::-webkit-scrollbar-track {
+        background: var(--bg-tertiary);
+        border-radius: 4px;
+    }
+    
+    .modal-body::-webkit-scrollbar-thumb,
+    .usb-photo-grid::-webkit-scrollbar-thumb,
+    .photo-library-grid::-webkit-scrollbar-thumb {
+        background: var(--border-color);
+        border-radius: 4px;
+    }
+    
+    .modal-body::-webkit-scrollbar-thumb:hover,
+    .usb-photo-grid::-webkit-scrollbar-thumb:hover,
+    .photo-library-grid::-webkit-scrollbar-thumb:hover {
+        background: var(--text-secondary);
+    }
+    
+    /* Debug panel scrolling */
+    .usb-debug {
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+        max-height: 300px;
+    }
+    
+    .usb-debug::-webkit-scrollbar {
+        width: 6px;
+    }
+    
+    .usb-debug::-webkit-scrollbar-track {
+        background: var(--bg-primary);
+        border-radius: 3px;
+    }
+    
+    .usb-debug::-webkit-scrollbar-thumb {
+        background: var(--border-color);
+        border-radius: 3px;
+    }
+    
+    /* Virtual keyboard container */
+    #virtualKeyboard {
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+        max-height: 400px;
+    }
+    
+    /* Enable drag scrolling for containers */
+    .container-fluid {
+        /* Enable touch scrolling */
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+    }
+    
+    /* Smooth scrolling for entire page */
+    html {
+        scroll-behavior: smooth;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    body {
+        /* Enable touch scrolling */
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+    }
+    
+    /* Make sure touch events work properly */
+    * {
+        /* Enable touch manipulation */
+        touch-action: manipulation;
+    }
+    
+    /* Override touch-action for scrollable areas */
+    .modal-body,
+    .usb-photo-grid,
+    .photo-library-grid,
+    .usb-debug,
+    #virtualKeyboard {
+        touch-action: pan-y pinch-zoom;
     }
     
     .form-control {
@@ -528,7 +659,121 @@
         loadLibrary();
         setTimeout(scanForUSB, 1000);
         setInterval(periodicUSBScan, 10000);
+        
+        // Initialize drag scrolling for touch devices
+        initializeDragScrolling();
     });
+    
+    // Initialize drag scrolling functionality
+    function initializeDragScrolling() {
+        const scrollableElements = [
+            '.modal-body',
+            '.usb-photo-grid', 
+            '.photo-library-grid',
+            '.usb-debug'
+        ];
+        
+        scrollableElements.forEach(selector => {
+            const elements = document.querySelectorAll(selector);
+            elements.forEach(element => {
+                if (element) {
+                    enableDragScroll(element);
+                }
+            });
+        });
+        
+        // Re-initialize when modals are shown
+        document.addEventListener('shown.bs.modal', function(e) {
+            const modalBody = e.target.querySelector('.modal-body');
+            if (modalBody) {
+                enableDragScroll(modalBody);
+                
+                // Also enable for elements inside the modal
+                const gridElements = modalBody.querySelectorAll('.usb-photo-grid');
+                gridElements.forEach(grid => enableDragScroll(grid));
+            }
+        });
+    }
+    
+    // Enable drag scrolling for an element
+    function enableDragScroll(element) {
+        let isDown = false;
+        let startY;
+        let scrollTop;
+        let startX;
+        let scrollLeft;
+        
+        // Mouse events
+        element.addEventListener('mousedown', (e) => {
+            // Don't interfere with buttons and other interactive elements
+            if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || 
+                e.target.closest('button') || e.target.closest('input')) {
+                return;
+            }
+            
+            isDown = true;
+            element.style.cursor = 'grabbing';
+            startY = e.pageY - element.offsetTop;
+            scrollTop = element.scrollTop;
+            startX = e.pageX - element.offsetLeft;
+            scrollLeft = element.scrollLeft;
+            e.preventDefault();
+        });
+        
+        element.addEventListener('mouseleave', () => {
+            isDown = false;
+            element.style.cursor = 'grab';
+        });
+        
+        element.addEventListener('mouseup', () => {
+            isDown = false;
+            element.style.cursor = 'grab';
+        });
+        
+        element.addEventListener('mousemove', (e) => {
+            if (!isDown) return;
+            e.preventDefault();
+            
+            const y = e.pageY - element.offsetTop;
+            const walkY = (y - startY) * 2;
+            element.scrollTop = scrollTop - walkY;
+            
+            const x = e.pageX - element.offsetLeft;
+            const walkX = (x - startX) * 2;
+            element.scrollLeft = scrollLeft - walkX;
+        });
+        
+        // Touch events for mobile/tablet
+        let touchStartY, touchStartX;
+        
+        element.addEventListener('touchstart', (e) => {
+            // Don't interfere with buttons and other interactive elements
+            if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || 
+                e.target.closest('button') || e.target.closest('input')) {
+                return;
+            }
+            
+            touchStartY = e.touches[0].clientY;
+            touchStartX = e.touches[0].clientX;
+            scrollTop = element.scrollTop;
+            scrollLeft = element.scrollLeft;
+        }, { passive: true });
+        
+        element.addEventListener('touchmove', (e) => {
+            if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || 
+                e.target.closest('button') || e.target.closest('input')) {
+                return;
+            }
+            
+            const touchY = e.touches[0].clientY;
+            const touchX = e.touches[0].clientX;
+            const walkY = touchStartY - touchY;
+            const walkX = touchStartX - touchX;
+            
+            element.scrollTop = scrollTop + walkY;
+            element.scrollLeft = scrollLeft + walkX;
+        }, { passive: true });
+    }
     
     // Load photo library
     function loadLibrary() {
