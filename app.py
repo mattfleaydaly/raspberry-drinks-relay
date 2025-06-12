@@ -8,6 +8,8 @@ import random
 import threading
 from threading import Lock
 import subprocess
+from werkzeug.utils import secure_filename
+import shutil
 
 app = Flask(__name__)
 
@@ -133,6 +135,103 @@ def check_networkmanager_status():
         
     except Exception as e:
         return False, f"Error checking NetworkManager: {str(e)}"
+
+PHOTOS_FOLDER = 'photos/albums'
+PHOTO_LIB_JSON = 'photo_library.json'
+
+def load_photo_library():
+    if not os.path.exists(PHOTO_LIB_JSON):
+        default_structure = {"folders": ["default"], "photos": {}}
+        save_photo_library(default_structure)
+    with open(PHOTO_LIB_JSON, "r") as f:
+        return json.load(f)
+
+def save_photo_library(data):
+    with open(PHOTO_LIB_JSON, "w") as f:
+        json.dump(data, f, indent=2)
+
+@app.route("/photo-library")
+def photo_library():
+    data = load_photo_library()
+    return render_template("photo_library.html", data=data)
+
+@app.route("/api/photo-library/upload", methods=["POST"])
+def upload_photos():
+    folder = request.form.get('folder', 'default')
+    files = request.files.getlist('photos')
+    data = load_photo_library()
+
+    folder_path = os.path.join(PHOTOS_FOLDER, folder)
+    os.makedirs(folder_path, exist_ok=True)
+
+    for file in files:
+        filename = secure_filename(file.filename)
+        file.save(os.path.join(folder_path, filename))
+        data["photos"][filename] = folder
+
+    save_photo_library(data)
+    return jsonify({"success": True})
+
+@app.route("/api/photo-library/import-usb", methods=["POST"])
+def import_photos_usb():
+    usb_path = "/media/usb/photos"
+    folder = request.json.get('folder', 'default')
+
+    if not os.path.exists(usb_path):
+        return jsonify({"success": False, "message": "USB drive with 'photos' folder not found."}), 400
+
+    data = load_photo_library()
+    folder_path = os.path.join(PHOTOS_FOLDER, folder)
+    os.makedirs(folder_path, exist_ok=True)
+
+    imported = []
+    for photo in os.listdir(usb_path):
+        src = os.path.join(usb_path, photo)
+        dest = os.path.join(folder_path, secure_filename(photo))
+        shutil.copy(src, dest)
+        data["photos"][photo] = folder
+        imported.append(photo)
+
+    save_photo_library(data)
+    return jsonify({"success": True, "imported": imported})
+
+@app.route("/api/photo-library/manage", methods=["POST"])
+def manage_photos():
+    action = request.json.get("action")
+    data = load_photo_library()
+
+    if action == "create_folder":
+        folder_name = request.json.get("folder")
+        if folder_name not in data["folders"]:
+            data["folders"].append(folder_name)
+            os.makedirs(os.path.join(PHOTOS_FOLDER, folder_name), exist_ok=True)
+
+    elif action == "delete_folder":
+        folder_name = request.json.get("folder")
+        if folder_name in data["folders"] and folder_name != 'default':
+            shutil.rmtree(os.path.join(PHOTOS_FOLDER, folder_name))
+            data["folders"].remove(folder_name)
+            data["photos"] = {k:v for k,v in data["photos"].items() if v != folder_name}
+
+    elif action == "move_photo":
+        photo = request.json.get("photo")
+        new_folder = request.json.get("new_folder")
+        old_folder = data["photos"][photo]
+
+        old_path = os.path.join(PHOTOS_FOLDER, old_folder, photo)
+        new_path = os.path.join(PHOTOS_FOLDER, new_folder, photo)
+        shutil.move(old_path, new_path)
+        data["photos"][photo] = new_folder
+
+    elif action == "delete_photo":
+        photo = request.json.get("photo")
+        folder = data["photos"][photo]
+        photo_path = os.path.join(PHOTOS_FOLDER, folder, photo)
+        os.remove(photo_path)
+        del data["photos"][photo]
+
+    save_photo_library(data)
+    return jsonify({"success": True, "data": data})
 
 # New endpoint to check test status
 @app.route("/test-in-progress")
