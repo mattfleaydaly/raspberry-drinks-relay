@@ -97,10 +97,12 @@ function makeDrink() {
     });
     
     // Show status banner
-    const statusBanner = document.getElementById('status-banner');
+    const statusOverlay = document.getElementById('status-overlay');
     const statusMessage = document.getElementById('status-message');
-    if (statusBanner) statusBanner.classList.remove('d-none');
-    if (statusMessage) statusMessage.textContent = `Making ${currentDrinkName}...`;
+    const statusSubtitle = document.getElementById('status-subtitle');
+    if (statusOverlay) statusOverlay.classList.remove('d-none');
+    if (statusMessage) statusMessage.textContent = `Starting ${currentDrinkName}...`;
+    if (statusSubtitle) statusSubtitle.textContent = 'Warming up the pumps...';
     
     // Reset progress bar
     const progressBar = document.getElementById('progress-bar');
@@ -136,7 +138,7 @@ function makeDrink() {
         showErrorModal(error.message);
         
         // Hide status banner
-        if (statusBanner) statusBanner.classList.add('d-none');
+        if (statusOverlay) statusOverlay.classList.add('d-none');
         
         // Re-enable all make buttons
         makeDrinkButtons.forEach(button => {
@@ -172,6 +174,7 @@ function updateProgress() {
 
     // Update commentary
     const statusMessage = document.getElementById('status-message');
+    const statusSubtitle = document.getElementById('status-subtitle');
     if (statusMessage && currentDrinkName) {
         const nextPhase = percentComplete < 15 ? 0 :
                           percentComplete < 40 ? 1 :
@@ -179,7 +182,8 @@ function updateProgress() {
                           percentComplete < 90 ? 3 : 4;
         if (nextPhase !== progressPhase) {
             progressPhase = nextPhase;
-            statusMessage.textContent = `${commentaryPhases[progressPhase]} (${currentDrinkName})`;
+            statusMessage.textContent = commentaryPhases[progressPhase];
+            if (statusSubtitle) statusSubtitle.textContent = currentDrinkName;
         }
     }
     
@@ -201,8 +205,8 @@ function stopProgressTracking() {
 // Handle drink completion
 function drinkComplete() {
     // Hide status banner
-    const statusBanner = document.getElementById('status-banner');
-    if (statusBanner) statusBanner.classList.add('d-none');
+    const statusOverlay = document.getElementById('status-overlay');
+    if (statusOverlay) statusOverlay.classList.add('d-none');
     
     // Re-enable all make buttons
     const makeDrinkButtons = document.querySelectorAll('.make-drink-btn');
@@ -220,6 +224,12 @@ function drinkComplete() {
     const completeModal = bootstrap.Modal.getInstance(document.getElementById('completeModal')) || 
                           new bootstrap.Modal(document.getElementById('completeModal'));
     completeModal.show();
+
+    // Auto-dismiss after a short time
+    setTimeout(() => {
+        const modal = bootstrap.Modal.getInstance(document.getElementById('completeModal'));
+        if (modal) modal.hide();
+    }, 3500);
     
     // Reset current drink
     currentDrinkId = null;

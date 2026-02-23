@@ -1254,6 +1254,20 @@ def version_history():
     except Exception as e:
         return jsonify({"success": False, "history": f"Error reading version history: {e}"})
 
+@app.route("/api/system-log", methods=["GET"])
+def system_log():
+    try:
+        result = subprocess.run(
+            ["journalctl", "-u", "relay-control.service", "-n", "200", "--no-pager"],
+            capture_output=True,
+            text=True
+        )
+        if result.returncode != 0:
+            return jsonify({"success": False, "error": result.stderr or "Unable to read logs"})
+        return jsonify({"success": True, "log": result.stdout})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
 @app.route("/check-updates")
 def check_updates():
     updates_available = random.choice([True, False])  # Simulate checking for updates

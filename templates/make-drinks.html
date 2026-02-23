@@ -4,14 +4,14 @@
 {% block content %}
 <div class="container-fluid">
     <div class="page">
-    <!-- Status Banner -->
-    <div id="status-banner" class="alert alert-primary d-none">
-        <div class="d-flex align-items-center">
-            <div class="spinner-border spinner-border-sm me-2" role="status"></div>
-            <span id="status-message">Preparing drink...</span>
-        </div>
-        <div class="progress mt-2">
-            <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" style="width: 0%"></div>
+    <!-- Fullscreen Status Overlay -->
+    <div id="status-overlay" class="status-overlay d-none" aria-live="polite">
+        <div class="status-card">
+            <div class="status-title" id="status-message">Preparing drink...</div>
+            <div class="status-sub" id="status-subtitle">Please wait while we mix your drink.</div>
+            <div class="progress mt-3">
+                <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" style="width: 0%"></div>
+            </div>
         </div>
     </div>
     

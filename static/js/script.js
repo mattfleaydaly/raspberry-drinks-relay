@@ -98,12 +98,22 @@ function initializeNavButtons() {
 
     if (shutdownBtn) {
         let holdTimer = null;
-        const holdMs = 1500;
+        let holdTick = null;
+        const holdMs = 2500;
+        let holdStart = 0;
         const startHold = (e) => {
             e.preventDefault();
             shutdownBtn.classList.add('holding');
+            holdStart = Date.now();
+            shutdownBtn.style.setProperty('--hold', '0%');
+            holdTick = setInterval(() => {
+                const elapsed = Date.now() - holdStart;
+                const pct = Math.min(100, Math.round((elapsed / holdMs) * 100));
+                shutdownBtn.style.setProperty('--hold', `${pct}%`);
+            }, 50);
             holdTimer = setTimeout(async () => {
                 shutdownBtn.classList.remove('holding');
+                shutdownBtn.style.setProperty('--hold', '0%');
                 const ok = await window.appConfirm('Shutdown the system now?');
                 if (ok) {
                     fetch('/shutdown', { method: 'POST' })
@@ -115,13 +125,20 @@ function initializeNavButtons() {
         };
         const cancelHold = () => {
             shutdownBtn.classList.remove('holding');
+            shutdownBtn.style.setProperty('--hold', '0%');
             if (holdTimer) clearTimeout(holdTimer);
+            if (holdTick) clearInterval(holdTick);
             holdTimer = null;
+            holdTick = null;
         };
         shutdownBtn.addEventListener('pointerdown', startHold);
         shutdownBtn.addEventListener('pointerup', cancelHold);
         shutdownBtn.addEventListener('pointerleave', cancelHold);
         shutdownBtn.addEventListener('pointercancel', cancelHold);
+        shutdownBtn.addEventListener('touchstart', startHold, { passive: false });
+        shutdownBtn.addEventListener('touchend', cancelHold);
+        shutdownBtn.addEventListener('mousedown', startHold);
+        shutdownBtn.addEventListener('mouseup', cancelHold);
     }
 }
 

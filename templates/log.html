@@ -6,10 +6,13 @@
     <div class="page">
         <section class="panel">
             <div class="panel-title">System Log</div>
-            <div class="section-note">This screen is reserved for future log streaming. For now, use the update log modal in Settings.</div>
+            <div class="section-note">Latest service logs (relay-control).</div>
+            <div id="systemLog" class="log-container" style="height: 300px; overflow-y: auto; white-space: pre-wrap; margin-top: 12px;">
+                Loading logs...
+            </div>
             <div class="grid grid-2" style="margin-top: 16px;">
-                <button class="btn btn-primary w-100" onclick="location.href='/settings'">
-                    <i class="bi bi-gear"></i> Open Settings
+                <button class="btn btn-primary w-100" onclick="refreshLogs()">
+                    <i class="bi bi-arrow-repeat"></i> Refresh
                 </button>
                 <button class="btn btn-outline w-100" onclick="history.back()">
                     <i class="bi bi-arrow-left"></i> Go Back
@@ -18,4 +21,24 @@
         </section>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function refreshLogs() {
+        fetch('/api/system-log')
+            .then(res => res.json())
+            .then(data => {
+                const el = document.getElementById('systemLog');
+                if (!el) return;
+                if (data.success) el.textContent = data.log || 'No logs available.';
+                else el.textContent = data.error || 'Failed to load logs.';
+            })
+            .catch(() => {
+                const el = document.getElementById('systemLog');
+                if (el) el.textContent = 'Failed to load logs.';
+            });
+    }
+    document.addEventListener('DOMContentLoaded', refreshLogs);
+</script>
 {% endblock %}
