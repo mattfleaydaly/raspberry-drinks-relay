@@ -1,4 +1,4 @@
-from flask import Flask, render_template, jsonify, request, Response, redirect, url_for
+from flask import Flask, render_template, jsonify, request, Response, redirect, url_for, send_file
 from gpiozero import OutputDevice
 import os
 import socket
@@ -310,15 +310,42 @@ def usb_preview(filename):
         usb_path = find_usb_mount()
         if not usb_path:
             return "USB not found", 404
-            
-        file_path = os.path.join(usb_path, filename)
-        if not os.path.exists(file_path):
+
+        file_path = os.path.normpath(os.path.join(usb_path, filename))
+        if not os.path.exists(file_path) or not os.path.isfile(file_path):
             return "File not found", 404
             
         return send_file(file_path)
         
     except Exception as e:
         return f"Error: {str(e)}", 500
+
+@app.route("/photos/albums/<path:filename>")
+def serve_saved_photo(filename):
+    """Serve saved photos from the local library."""
+    try:
+        file_path = os.path.normpath(os.path.join(PHOTOS_FOLDER, filename))
+        if not os.path.exists(file_path) or not os.path.isfile(file_path):
+            return "File not found", 404
+        return send_file(file_path)
+    except Exception as e:
+        return f"Error: {str(e)}", 500
+
+@app.route("/api/photo-library/list-saved", methods=["GET"])
+def list_saved_photos():
+    """List all saved photos with URLs."""
+    try:
+        data = load_photo_library()
+        photos = []
+        for filename, folder in data.get("photos", {}).items():
+            photos.append({
+                "name": filename,
+                "folder": folder,
+                "url": f"/photos/albums/{folder}/{filename}"
+            })
+        return jsonify({"success": True, "photos": photos, "folders": data.get("folders", [])})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e), "photos": []})
 
 @app.route("/api/photo-library/import-usb", methods=["POST"])
 def import_photos_usb():

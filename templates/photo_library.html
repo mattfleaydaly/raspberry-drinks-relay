@@ -179,6 +179,21 @@
         </div>
     </div>
 </div>
+
+<!-- Saved Photo Preview Modal -->
+<div class="modal fade" id="savedPhotoModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Photo Preview</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="savedPhotoImg" src="" alt="Saved photo" style="max-width: 100%; max-height: 60vh; border-radius: 12px;">
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -401,7 +416,7 @@
                 const photoDiv = document.createElement('div');
                 photoDiv.className = 'mb-3';
                 photoDiv.innerHTML = `
-                    <img src="/photos/albums/${folder}/${photo}" class="mini-photo" alt="${photo}">
+                    <img src="/photos/albums/${folder}/${photo}" class="mini-photo" alt="${photo}" onclick="previewSavedPhoto('/photos/albums/${folder}/${photo}')">
                     <button class="btn btn-gradient-danger btn-sm touch-btn w-100" onclick="deletePhoto('${photo}')">
                         🗑️ Delete
                     </button>
@@ -864,6 +879,16 @@
     
     function clearAll() {
         document.getElementById('folderNameInput').value = '';
+    }
+
+    // Preview saved photo
+    function previewSavedPhoto(src) {
+        const modalEl = document.getElementById('savedPhotoModal');
+        const imgEl = document.getElementById('savedPhotoImg');
+        if (!modalEl || !imgEl) return;
+        imgEl.src = src;
+        const modal = new bootstrap.Modal(modalEl);
+        modal.show();
     }
 </script>
 {% endblock %}

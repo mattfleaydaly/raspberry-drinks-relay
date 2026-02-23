@@ -28,6 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadDrinks();
     populateIconGrid();
     setupModalScrolling();
+    loadPhotoOptions();
 });
 
 // Initialize Bootstrap modals
@@ -227,6 +228,11 @@ function initEventListeners() {
     document.getElementById('moreIconsBtn')?.addEventListener('click', () => {
         openIconModal();
     });
+
+    // Photo selector
+    document.getElementById('photoSelector')?.addEventListener('change', (e) => {
+        updatePhotoPreview(e.target.value);
+    });
     
     // Copy data button
     document.getElementById('copyDataBtn')?.addEventListener('click', () => {
@@ -349,6 +355,7 @@ function openDrinkModal(drinkIndex = -1) {
     // Reset form
     drinkForm.reset();
     document.getElementById('relaySteps').innerHTML = '';
+    loadPhotoOptions();
     
     if (drinkIndex >= 0 && drinkIndex < drinksData.length) {
         // Edit existing drink
@@ -358,6 +365,11 @@ function openDrinkModal(drinkIndex = -1) {
         document.getElementById('drinkName').value = drink.name;
         document.getElementById('iconSelector').value = drink.icon;
         updateIconPreview(drink.icon);
+        const photoSelector = document.getElementById('photoSelector');
+        if (photoSelector) {
+            photoSelector.value = drink.image || '';
+            updatePhotoPreview(photoSelector.value);
+        }
         
         // Populate steps
         drink.steps.forEach((step, index) => {
@@ -370,6 +382,11 @@ function openDrinkModal(drinkIndex = -1) {
         modalTitle.textContent = 'Add Drink';
         document.getElementById('drinkId').value = '';
         updateIconPreview('bi-cup');
+        const photoSelector = document.getElementById('photoSelector');
+        if (photoSelector) {
+            photoSelector.value = '';
+            updatePhotoPreview('');
+        }
         
         // Add default step
         addRelayStep();
@@ -380,6 +397,40 @@ function openDrinkModal(drinkIndex = -1) {
     // Show modal
     const bsModal = bootstrap.Modal.getInstance(modal) || new bootstrap.Modal(modal);
     bsModal.show();
+}
+
+// Load saved photos for selection
+function loadPhotoOptions() {
+    const selector = document.getElementById('photoSelector');
+    if (!selector) return;
+    fetch('/api/photo-library/list-saved')
+        .then(res => res.json())
+        .then(data => {
+            if (!data.success) return;
+            const current = selector.value;
+            selector.innerHTML = '<option value=\"\">No photo</option>';
+            data.photos.forEach(photo => {
+                const opt = document.createElement('option');
+                opt.value = photo.url;
+                opt.textContent = `${photo.folder}/${photo.name}`;
+                selector.appendChild(opt);
+            });
+            selector.value = current || '';
+        })
+        .catch(() => {});
+}
+
+function updatePhotoPreview(url) {
+    const wrap = document.getElementById('photoPreviewWrap');
+    const img = document.getElementById('photoPreview');
+    if (!wrap || !img) return;
+    if (!url) {
+        wrap.style.display = 'none';
+        img.src = '';
+        return;
+    }
+    img.src = url;
+    wrap.style.display = 'block';
 }
 
 // Update the icon preview
@@ -493,6 +544,8 @@ function saveDrink() {
     const drinkIndex = drinkIdElement.value;
     const name = nameElement.value.trim();
     const icon = iconElement.value;
+    const photoSelector = document.getElementById('photoSelector');
+    const image = photoSelector ? photoSelector.value : '';
     
     if (!name) {
         showToast('Please enter a drink name', 'warning');
@@ -522,6 +575,7 @@ function saveDrink() {
     const drink = {
         name,
         icon,
+        image: image || null,
         steps
     };
     

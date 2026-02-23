@@ -374,9 +374,10 @@ input, textarea, select {
 }
 
 .osk-bar {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr 2fr auto;
     align-items: center;
-    justify-content: space-between;
+    gap: 12px;
     margin-bottom: 10px;
 }
 
@@ -385,6 +386,19 @@ input, textarea, select {
     letter-spacing: 0.2em;
     text-transform: uppercase;
     color: var(--muted);
+}
+
+.osk-preview {
+    min-height: 36px;
+    border-radius: var(--radius-xs);
+    border: 1px solid var(--line);
+    padding: 6px 10px;
+    font-size: 1rem;
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text);
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
 }
 
 .osk-close {
@@ -471,6 +485,15 @@ input, textarea, select {
 .drink-card .drink-icon {
     font-size: 2rem;
     color: var(--accent-2);
+}
+
+.drink-photo {
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+    border-radius: var(--radius-xs);
+    border: 1px solid var(--line);
+    margin-bottom: 8px;
 }
 
 .drink-card .drink-meta {

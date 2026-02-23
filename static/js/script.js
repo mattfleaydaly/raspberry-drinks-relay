@@ -194,12 +194,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const keysContainer = osk.querySelector('.osk-keys');
     const closeBtn = osk.querySelector('.osk-close');
+    const preview = osk.querySelector('#oskPreview');
     let activeInput = null;
 
     function showKeyboard(input) {
         activeInput = input;
         osk.classList.remove('hidden');
         osk.setAttribute('aria-hidden', 'false');
+        if (preview) preview.textContent = activeInput.value || '';
     }
 
     function hideKeyboard() {
@@ -216,6 +218,7 @@ document.addEventListener('DOMContentLoaded', () => {
         activeInput.value = value.slice(0, start) + char + value.slice(end);
         activeInput.selectionStart = activeInput.selectionEnd = start + char.length;
         activeInput.dispatchEvent(new Event('input', { bubbles: true }));
+        if (preview) preview.textContent = activeInput.value || '';
         activeInput.focus();
     }
 
@@ -229,6 +232,7 @@ document.addEventListener('DOMContentLoaded', () => {
         activeInput.value = value.slice(0, newStart) + value.slice(end);
         activeInput.selectionStart = activeInput.selectionEnd = Math.max(newStart, 0);
         activeInput.dispatchEvent(new Event('input', { bubbles: true }));
+        if (preview) preview.textContent = activeInput.value || '';
         activeInput.focus();
     }
 
@@ -236,6 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!activeInput) return;
         activeInput.value = '';
         activeInput.dispatchEvent(new Event('input', { bubbles: true }));
+        if (preview) preview.textContent = '';
         activeInput.focus();
     }
 
@@ -292,6 +297,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const target = e.target;
         if (target && target.classList && target.classList.contains('osk-input')) {
             showKeyboard(target);
+            setTimeout(() => {
+                target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 50);
         }
     });
 

@@ -71,6 +71,18 @@
                                 </button>
                             </div>
                         </div>
+
+                        <!-- Optional Photo -->
+                        <div class="mb-3">
+                            <label for="photoSelector" class="form-label">Photo (optional)</label>
+                            <select class="form-select" id="photoSelector">
+                                <option value="">No photo</option>
+                            </select>
+                            <div class="section-note mt-2">If a photo is selected, it will replace the icon on the drink card.</div>
+                            <div class="mt-2" id="photoPreviewWrap" style="display:none;">
+                                <img id="photoPreview" src="" alt="Drink photo preview" style="max-width: 100%; max-height: 140px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1);">
+                            </div>
+                        </div>
                         
                         <!-- Relay Sequence -->
                         <div class="mb-3">

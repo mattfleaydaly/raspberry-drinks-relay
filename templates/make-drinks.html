@@ -30,7 +30,11 @@
         {% for drink in drinks %}
         <div class="drink-card">
             <div class="card-body text-center">
+                {% if drink.image %}
+                <img src="{{ drink.image }}" class="drink-photo" alt="{{ drink.name }}">
+                {% else %}
                 <i class="{{ drink.icon }} drink-icon"></i>
+                {% endif %}
                 <h5 class="card-title">{{ drink.name }}</h5>
                 <div class="drink-meta">{{ drink.steps|length }} steps</div>
             </div>
