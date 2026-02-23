@@ -1243,6 +1243,17 @@ def screensaver():
     save_config(cfg)
     return jsonify({"success": True})
 
+@app.route("/api/version-history", methods=["GET"])
+def version_history():
+    try:
+        if not os.path.exists("version.txt"):
+            return jsonify({"success": False, "history": "No version history available."})
+        with open("version.txt", "r") as f:
+            history = f.read().strip()
+        return jsonify({"success": True, "history": history})
+    except Exception as e:
+        return jsonify({"success": False, "history": f"Error reading version history: {e}"})
+
 @app.route("/check-updates")
 def check_updates():
     updates_available = random.choice([True, False])  # Simulate checking for updates

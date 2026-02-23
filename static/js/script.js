@@ -82,6 +82,7 @@ function enableDragScroll(container) {
 function initializeNavButtons() {
     const backBtn = document.getElementById('backBtn');
     const homeBtn = document.getElementById('homeBtn');
+    const shutdownBtn = document.getElementById('shutdownBtn');
 
     if (backBtn) {
         backBtn.addEventListener('click', () => {
@@ -93,6 +94,34 @@ function initializeNavButtons() {
         homeBtn.addEventListener('click', () => {
             window.location.href = '/dashboard';
         });
+    }
+
+    if (shutdownBtn) {
+        let holdTimer = null;
+        const holdMs = 1500;
+        const startHold = (e) => {
+            e.preventDefault();
+            shutdownBtn.classList.add('holding');
+            holdTimer = setTimeout(async () => {
+                shutdownBtn.classList.remove('holding');
+                const ok = await window.appConfirm('Shutdown the system now?');
+                if (ok) {
+                    fetch('/shutdown', { method: 'POST' })
+                        .then(res => res.json())
+                        .then(data => window.appAlert(data.status))
+                        .catch(() => window.appAlert('Failed to shutdown'));
+                }
+            }, holdMs);
+        };
+        const cancelHold = () => {
+            shutdownBtn.classList.remove('holding');
+            if (holdTimer) clearTimeout(holdTimer);
+            holdTimer = null;
+        };
+        shutdownBtn.addEventListener('pointerdown', startHold);
+        shutdownBtn.addEventListener('pointerup', cancelHold);
+        shutdownBtn.addEventListener('pointerleave', cancelHold);
+        shutdownBtn.addEventListener('pointercancel', cancelHold);
     }
 }
 
@@ -179,6 +208,59 @@ document.addEventListener('shown.bs.modal', (event) => {
         enableDragScroll(modalDialog);
     }
 });
+
+// App dialog helpers (replace browser alert/confirm)
+function showAppDialog({ title = 'Notice', message = '', confirm = false } = {}) {
+    return new Promise((resolve) => {
+        const modalEl = document.getElementById('app-modal');
+        const titleEl = document.getElementById('app-modal-title');
+        const msgEl = document.getElementById('app-modal-message');
+        const okBtn = document.getElementById('app-modal-ok');
+        const cancelBtn = document.getElementById('app-modal-cancel');
+        if (!modalEl || !titleEl || !msgEl || !okBtn || !cancelBtn) {
+            resolve(confirm ? false : true);
+            return;
+        }
+
+        titleEl.textContent = title;
+        msgEl.textContent = message;
+        cancelBtn.style.display = confirm ? 'inline-flex' : 'none';
+
+        const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+
+        const cleanup = (result) => {
+            okBtn.removeEventListener('click', okHandler);
+            cancelBtn.removeEventListener('click', cancelHandler);
+            modalEl.removeEventListener('hidden.bs.modal', hiddenHandler);
+            resolve(result);
+        };
+
+        const okHandler = (e) => {
+            e.preventDefault();
+            modal.hide();
+            cleanup(true);
+        };
+
+        const cancelHandler = (e) => {
+            e.preventDefault();
+            modal.hide();
+            cleanup(false);
+        };
+
+        const hiddenHandler = () => {
+            if (confirm) cleanup(false);
+        };
+
+        okBtn.addEventListener('click', okHandler);
+        cancelBtn.addEventListener('click', cancelHandler);
+        modalEl.addEventListener('hidden.bs.modal', hiddenHandler);
+
+        modal.show();
+    });
+}
+
+window.appAlert = (message, title = 'Notice') => showAppDialog({ title, message, confirm: false });
+window.appConfirm = (message, title = 'Confirm') => showAppDialog({ title, message, confirm: true });
 
 // On-screen keyboard for touch inputs
 document.addEventListener('DOMContentLoaded', () => {
@@ -338,6 +420,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    document.addEventListener('input', (e) => {
+        if (activeInput && e.target === activeInput) {
+            if (preview) preview.textContent = activeInput.value || '';
+        }
+    });
+
     closeBtn.addEventListener('click', hideKeyboard);
 });
 
@@ -382,6 +470,14 @@ document.addEventListener('DOMContentLoaded', () => {
             })
             .catch(() => {});
     }
+
+    window.updateScreensaverConfig = ({ enabled: e, timeout, photo }) => {
+        enabled = !!e;
+        timeoutMs = Math.max(10, parseInt(timeout || 120, 10)) * 1000;
+        photoUrl = photo || '';
+        hideSaver();
+        resetTimer();
+    };
 
     ['click','touchstart','mousemove','keydown'].forEach(evt => {
         document.addEventListener(evt, () => {

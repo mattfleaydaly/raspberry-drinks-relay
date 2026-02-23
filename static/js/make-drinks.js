@@ -4,6 +4,14 @@ let currentDrinkName = null;
 let currentDrinkTime = 0;
 let progressInterval = null;
 let progressStartTime = 0;
+let progressPhase = -1;
+const commentaryPhases = [
+    'Warming up the pumps...',
+    'Mixing the base...',
+    'Balancing flavors...',
+    'Finishing the pour...',
+    'Almost ready...'
+];
 
 // Initialize the page
 document.addEventListener('DOMContentLoaded', () => {
@@ -142,6 +150,7 @@ function makeDrink() {
 function startProgressTracking() {
     // Record start time
     progressStartTime = Date.now();
+    progressPhase = -1;
     
     // Create progress update interval
     progressInterval = setInterval(() => {
@@ -159,6 +168,19 @@ function updateProgress() {
     if (progressBar) {
         progressBar.style.width = `${percentComplete}%`;
         progressBar.setAttribute('aria-valuenow', percentComplete);
+    }
+
+    // Update commentary
+    const statusMessage = document.getElementById('status-message');
+    if (statusMessage && currentDrinkName) {
+        const nextPhase = percentComplete < 15 ? 0 :
+                          percentComplete < 40 ? 1 :
+                          percentComplete < 65 ? 2 :
+                          percentComplete < 90 ? 3 : 4;
+        if (nextPhase !== progressPhase) {
+            progressPhase = nextPhase;
+            statusMessage.textContent = `${commentaryPhases[progressPhase]} (${currentDrinkName})`;
+        }
     }
     
     // If complete, stop tracking and show completion

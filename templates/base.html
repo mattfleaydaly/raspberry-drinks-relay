@@ -30,6 +30,9 @@
                 <i class="bi bi-house-fill"></i>
             </button>
             {% endif %}
+            <button class="btn nav-btn shutdown-btn" id="shutdownBtn" title="Hold to shutdown" aria-label="Shutdown (hold)">
+                <i class="bi bi-power"></i>
+            </button>
         </div>
     </header>
     
@@ -69,6 +72,43 @@
                     <button class="btn btn-primary" data-bs-dismiss="modal">
                         <i class="bi bi-x-lg me-1"></i>Close
                     </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Version History Modal -->
+    <div id="version-modal" class="modal fade" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Version History</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body modal-scrollable">
+                    <pre id="version-history" class="log-container" style="white-space: pre-wrap; margin: 0;"></pre>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-primary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- App Dialog Modal -->
+    <div id="app-modal" class="modal fade" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="app-modal-title">Notice</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="app-modal-message"></div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-outline" id="app-modal-cancel">Cancel</button>
+                    <button class="btn btn-primary" id="app-modal-ok">OK</button>
                 </div>
             </div>
         </div>

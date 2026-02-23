@@ -629,7 +629,7 @@ function saveDrink() {
 }
 
 // Delete a drink
-function deleteDrink() {
+async function deleteDrink() {
     const drinkIdElement = document.getElementById('drinkId');
     if (!drinkIdElement) return;
     
@@ -640,7 +640,8 @@ function deleteDrink() {
     }
     
     // Confirm deletion
-    if (confirm(`Are you sure you want to delete "${drinksData[drinkIndex].name}"?`)) {
+    const ok = await window.appConfirm(`Are you sure you want to delete "${drinksData[drinkIndex].name}"?`);
+    if (ok) {
         drinksData.splice(drinkIndex, 1);
         saveDrinksToBackend();
         
@@ -763,7 +764,7 @@ function copyToClipboard() {
 }
 
 // Import data
-function importData() {
+async function importData() {
     const importDataElement = document.getElementById('importData');
     if (!importDataElement) return;
     
@@ -789,7 +790,8 @@ function importData() {
         });
         
         // Confirm import
-        if (confirm('This will replace all existing drinks. Continue?')) {
+        const ok = await window.appConfirm('This will replace all existing drinks. Continue?');
+        if (ok) {
             drinksData = newData;
             saveDrinksToBackend();
             

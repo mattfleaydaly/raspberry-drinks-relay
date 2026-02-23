@@ -1,11 +1,12 @@
 // Complete settings.js with WiFi fixes and all existing functionality
 
 // Reboot or shutdown the system
-function controlSystem(action) {
-    if (confirm(`Are you sure you want to ${action} the system?`)) {
+async function controlSystem(action) {
+    const ok = await window.appConfirm(`Are you sure you want to ${action} the system?`);
+    if (ok) {
         fetch(`/${action}`, { method: 'POST' })
             .then(response => response.json())
-            .then(data => alert(data.status))
+            .then(data => window.appAlert(data.status))
             .catch(err => console.error(`Error performing ${action}:`, err));
     }
 }
@@ -121,7 +122,7 @@ function saveSystemName() {
     if (!input) return;
     const name = input.value.trim();
     if (!name) {
-        alert('Please enter a system name');
+        window.appAlert('Please enter a system name');
         return;
     }
     fetch('/api/system-name', {
@@ -132,34 +133,50 @@ function saveSystemName() {
     .then(res => res.json())
     .then(data => {
         if (data.success) {
-            alert(`System name updated to "${data.system_name}"`);
+            window.appAlert(`System name updated to "${data.system_name}"`);
             // Update header label immediately if present
             const headerKicker = document.querySelector('.header-kicker');
             if (headerKicker) headerKicker.textContent = data.system_name;
         } else {
-            alert(data.error || 'Failed to update system name');
+            window.appAlert(data.error || 'Failed to update system name');
         }
     })
-    .catch(() => alert('Failed to update system name'));
+    .catch(() => window.appAlert('Failed to update system name'));
 }
 
 function loadScreensaver() {
     const toggleBtn = document.getElementById('screensaverToggleBtn');
     const timeoutInput = document.getElementById('screensaverTimeout');
     const photoSelect = document.getElementById('screensaverPhoto');
-    if (!toggleBtn || !timeoutInput || !photoSelect) return;
+    const photoBtn = document.getElementById('screensaverPhotoBtn');
+    const previewWrap = document.getElementById('screensaverPreviewWrap');
+    const previewImg = document.getElementById('screensaverPreview');
+    if (!toggleBtn || !timeoutInput || !photoSelect || !photoBtn || !previewWrap || !previewImg) return;
 
     fetch('/api/photo-library/list-saved')
         .then(res => res.json())
         .then(data => {
             if (!data.success) return;
-            photoSelect.innerHTML = '<option value=\"\">No photo</option>';
-            data.photos.forEach(photo => {
-                const opt = document.createElement('option');
-                opt.value = photo.url;
-                opt.textContent = `${photo.folder}/${photo.name}`;
-                photoSelect.appendChild(opt);
-            });
+            const grid = document.getElementById('screensaverPhotoGrid');
+            if (grid) {
+                grid.innerHTML = '';
+                data.photos.forEach(photo => {
+                    const card = document.createElement('button');
+                    card.type = 'button';
+                    card.className = 'btn btn-outline w-100';
+                    card.style.textAlign = 'left';
+                    card.innerHTML = `
+                        <img src="${photo.url}" alt="${photo.name}" style="width:100%; height:120px; object-fit:cover; border-radius:10px; margin-bottom:8px;">
+                        <div>${photo.folder}/${photo.name}</div>
+                    `;
+                    card.addEventListener('click', () => {
+                        setScreensaverPhoto(photo.url);
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('screensaverPhotoModal'));
+                        if (modal) modal.hide();
+                    });
+                    grid.appendChild(card);
+                });
+            }
         })
         .catch(() => {});
 
@@ -169,7 +186,7 @@ function loadScreensaver() {
             toggleBtn.textContent = data.enabled ? 'Enabled' : 'Disabled';
             toggleBtn.className = data.enabled ? 'btn btn-success w-100' : 'btn btn-outline w-100';
             timeoutInput.value = data.timeout || 120;
-            photoSelect.value = data.photo || '';
+            setScreensaverPhoto(data.photo || '');
         })
         .catch(() => {});
 }
@@ -180,6 +197,21 @@ function toggleScreensaver() {
     const enabled = !toggleBtn.classList.contains('btn-success');
     toggleBtn.textContent = enabled ? 'Enabled' : 'Disabled';
     toggleBtn.className = enabled ? 'btn btn-success w-100' : 'btn btn-outline w-100';
+}
+
+function setScreensaverPhoto(url) {
+    const photoSelect = document.getElementById('screensaverPhoto');
+    const previewWrap = document.getElementById('screensaverPreviewWrap');
+    const previewImg = document.getElementById('screensaverPreview');
+    if (!photoSelect || !previewWrap || !previewImg) return;
+    photoSelect.value = url || '';
+    if (!url) {
+        previewWrap.style.display = 'none';
+        previewImg.src = '';
+        return;
+    }
+    previewImg.src = url;
+    previewWrap.style.display = 'block';
 }
 
 function saveScreensaver() {
@@ -198,12 +230,32 @@ function saveScreensaver() {
     .then(res => res.json())
     .then(data => {
         if (data.success) {
-            alert('Screensaver settings saved');
+            window.appAlert('Screensaver settings saved');
+            if (window.updateScreensaverConfig) {
+                window.updateScreensaverConfig({ enabled, timeout, photo });
+            }
         } else {
-            alert('Failed to save screensaver settings');
+            window.appAlert('Failed to save screensaver settings');
         }
     })
-    .catch(() => alert('Failed to save screensaver settings'));
+    .catch(() => window.appAlert('Failed to save screensaver settings'));
+}
+
+function openVersionHistory() {
+    const modalEl = document.getElementById('version-modal');
+    const pre = document.getElementById('version-history');
+    if (!modalEl || !pre) return;
+    pre.textContent = 'Loading version history...';
+    fetch('/api/version-history')
+        .then(res => res.json())
+        .then(data => {
+            pre.textContent = data.history || 'No version history available.';
+        })
+        .catch(() => {
+            pre.textContent = 'Failed to load version history.';
+        });
+    const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+    modal.show();
 }
 // UPDATED WiFi Functions - Enhanced with NetworkManager support
 
@@ -879,7 +931,7 @@ function handleScrollTouchEnd() {
 }
 
 // Load WiFi configuration from USB
-function loadWiFiConfigFromUSB() {
+async function loadWiFiConfigFromUSB() {
     const button = event.target;
     const originalText = button.innerHTML;
     
@@ -889,7 +941,7 @@ function loadWiFiConfigFromUSB() {
     fetch('/load-usb-wifi-config', { method: 'POST' })
         .then(response => response.json())
         .then(data => {
-            alert(data.message);
+            window.appAlert(data.message);
             if (data.message.includes('Successfully')) {
                 // Refresh status if successful
                 setTimeout(() => updateWiFiStatus(), 2000);
@@ -897,7 +949,7 @@ function loadWiFiConfigFromUSB() {
         })
         .catch(err => {
             console.error('Error loading WiFi config from USB:', err);
-            alert('Error loading WiFi configuration from USB');
+            window.appAlert('Error loading WiFi configuration from USB');
         })
         .finally(() => {
             button.disabled = false;
@@ -906,10 +958,9 @@ function loadWiFiConfigFromUSB() {
 }
 
 // Reset all network settings with confirmation
-function resetNetworkSettings() {
-    if (!confirm('Are you sure you want to reset all network settings?\n\nThis will:\n• Remove all saved WiFi networks\n• Reset network configurations\n• Require reconfiguration after reboot')) {
-        return;
-    }
+async function resetNetworkSettings() {
+    const ok = await window.appConfirm('Are you sure you want to reset all network settings?\n\nThis will:\n• Remove all saved WiFi networks\n• Reset network configurations\n• Require reconfiguration after reboot');
+    if (!ok) return;
     
     const button = event.target;
     const originalText = button.innerHTML;
@@ -920,17 +971,16 @@ function resetNetworkSettings() {
     fetch('/reset-network-settings', { method: 'POST' })
         .then(response => response.json())
         .then(data => {
-            alert(data.message);
+            window.appAlert(data.message);
             if (data.message.includes('reset')) {
                 // Suggest reboot after reset
-                if (confirm('Network settings have been reset.\n\nWould you like to reboot now to apply changes?')) {
-                    controlSystem('reboot');
-                }
+                window.appConfirm('Network settings have been reset.\n\nWould you like to reboot now to apply changes?')
+                    .then(rebootOk => { if (rebootOk) controlSystem('reboot'); });
             }
         })
         .catch(err => {
             console.error('Error resetting network settings:', err);
-            alert('Error resetting network settings');
+            window.appAlert('Error resetting network settings');
         })
         .finally(() => {
             button.disabled = false;
@@ -950,6 +1000,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveScreensaverBtn = document.getElementById('saveScreensaverBtn');
     if (toggleBtn) toggleBtn.addEventListener('click', toggleScreensaver);
     if (saveScreensaverBtn) saveScreensaverBtn.addEventListener('click', saveScreensaver);
+    const screensaverPhotoBtn = document.getElementById('screensaverPhotoBtn');
+    const clearScreensaverPhotoBtn = document.getElementById('clearScreensaverPhotoBtn');
+    if (screensaverPhotoBtn) {
+        screensaverPhotoBtn.addEventListener('click', () => {
+            const modalEl = document.getElementById('screensaverPhotoModal');
+            if (!modalEl) return;
+            const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+            modal.show();
+        });
+    }
+    if (clearScreensaverPhotoBtn) {
+        clearScreensaverPhotoBtn.addEventListener('click', () => {
+            setScreensaverPhoto('');
+            const modal = bootstrap.Modal.getInstance(document.getElementById('screensaverPhotoModal'));
+            if (modal) modal.hide();
+        });
+    }
+    const versionBtn = document.getElementById('versionHistoryBtn');
+    if (versionBtn) versionBtn.addEventListener('click', openVersionHistory);
     // Initialize all modals
     document.querySelectorAll('.modal').forEach(modalElement => {
         new bootstrap.Modal(modalElement);

@@ -1,3 +1,5 @@
+V2.6.0 - Shutdown hold button, live drink commentary, screensaver upgrades, library cleanup
+V2.5.0 - Touch UX upgrades, photo selection + library management, screensaver config, version history modal
 V2.4.0 - Full UI overhaul for 1280x400 + add status/log/maintenance pages + 404 recovery
 V2.3.1 - Photo library and USB fixes maybe? Pls try Mr G!
 V2.3.0 - Photo Library initial creation and testing... Mr G himself requested this feature

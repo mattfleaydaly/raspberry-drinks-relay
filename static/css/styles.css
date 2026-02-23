@@ -110,6 +110,18 @@ input, textarea, select {
     color: var(--text);
 }
 
+.shutdown-btn {
+    border-color: rgba(255, 91, 91, 0.6);
+    color: #ffb3b3;
+}
+
+.shutdown-btn.holding {
+    background: rgba(255, 91, 91, 0.2);
+    border-color: #ff5b5b;
+    color: #ff5b5b;
+    box-shadow: 0 0 0 2px rgba(255, 91, 91, 0.35);
+}
+
 .nav-btn i {
     font-size: 1.2rem;
 }
@@ -453,7 +465,14 @@ input, textarea, select {
 .screensaver img {
     max-width: 100%;
     max-height: 100%;
-    object-fit: contain;
+    object-fit: cover;
+    animation: screensaverKenBurns 40s ease-in-out infinite alternate;
+}
+
+@keyframes screensaverKenBurns {
+    0% { transform: scale(1) translate(0, 0); }
+    50% { transform: scale(1.05) translate(-1.5%, -1%); }
+    100% { transform: scale(1.08) translate(1.5%, 1%); }
 }
 
 .section-note {

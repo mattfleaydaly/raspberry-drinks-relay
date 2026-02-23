@@ -7,10 +7,10 @@
         <section class="panel">
             <div class="panel-title">System Info</div>
             <div class="grid grid-2">
-                <div class="status-pill">
+                <button id="versionHistoryBtn" class="status-pill btn btn-outline">
                     <span class="status-dot"></span>
                     Version: {{ version }}
-                </div>
+                </button>
                 <div class="status-pill">
                     <i class="bi bi-wifi"></i>
                     Local IP: {{ local_ip }}
@@ -34,10 +34,16 @@
             <div class="grid grid-4">
                 <button id="screensaverToggleBtn" class="btn btn-outline w-100">Enable</button>
                 <input id="screensaverTimeout" class="form-control osk-input" type="number" min="10" placeholder="Timeout (sec)">
-                <select id="screensaverPhoto" class="form-select"></select>
+                <button id="screensaverPhotoBtn" class="btn btn-outline w-100">
+                    <i class="bi bi-image"></i> Choose Photo
+                </button>
                 <button id="saveScreensaverBtn" class="btn btn-primary w-100">
                     <i class="bi bi-save"></i> Save
                 </button>
+            </div>
+            <input id="screensaverPhoto" type="hidden" value="">
+            <div class="mt-2" id="screensaverPreviewWrap" style="display:none;">
+                <img id="screensaverPreview" src="" alt="Screensaver preview" style="max-width: 100%; max-height: 160px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
             </div>
             <p class="section-note">Choose a photo from the library and set idle timeout.</p>
         </section>
@@ -238,6 +244,25 @@
                             <i class="bi bi-x-lg me-1"></i>Close
                         </button>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Screensaver Photo Picker Modal -->
+    <div id="screensaverPhotoModal" class="modal fade" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Select Screensaver Photo</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="grid grid-3" id="screensaverPhotoGrid"></div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-outline" data-bs-dismiss="modal">Cancel</button>
+                    <button class="btn btn-danger" id="clearScreensaverPhotoBtn">Clear Photo</button>
                 </div>
             </div>
         </div>
