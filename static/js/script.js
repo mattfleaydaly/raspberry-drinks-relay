@@ -196,6 +196,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeBtn = osk.querySelector('.osk-close');
     const preview = osk.querySelector('#oskPreview');
     let activeInput = null;
+    let isShift = false;
+    let isCaps = false;
 
     function showKeyboard(input) {
         activeInput = input;
@@ -210,16 +212,27 @@ document.addEventListener('DOMContentLoaded', () => {
         osk.setAttribute('aria-hidden', 'true');
     }
 
+    function applyCase(char) {
+        if (!char || char.length !== 1) return char;
+        const shouldUpper = isCaps ? !isShift : isShift;
+        return shouldUpper ? char.toUpperCase() : char.toLowerCase();
+    }
+
     function insertChar(char) {
         if (!activeInput) return;
+        const out = applyCase(char);
         const start = activeInput.selectionStart ?? activeInput.value.length;
         const end = activeInput.selectionEnd ?? activeInput.value.length;
         const value = activeInput.value;
-        activeInput.value = value.slice(0, start) + char + value.slice(end);
-        activeInput.selectionStart = activeInput.selectionEnd = start + char.length;
+        activeInput.value = value.slice(0, start) + out + value.slice(end);
+        activeInput.selectionStart = activeInput.selectionEnd = start + out.length;
         activeInput.dispatchEvent(new Event('input', { bubbles: true }));
         if (preview) preview.textContent = activeInput.value || '';
         activeInput.focus();
+        if (isShift) {
+            isShift = false;
+            renderKeyboard();
+        }
     }
 
     function backspace() {
@@ -253,7 +266,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const btn = document.createElement('button');
                 btn.type = 'button';
                 btn.className = 'osk-key';
-                btn.textContent = key;
+                btn.textContent = applyCase(key);
                 btn.addEventListener('click', (e) => {
                     e.preventDefault();
                     insertChar(key);
@@ -266,6 +279,26 @@ document.addEventListener('DOMContentLoaded', () => {
         const controlRow = document.createElement('div');
         controlRow.className = 'osk-row';
         controlRow.style.gridTemplateColumns = 'repeat(10, minmax(0, 1fr))';
+
+        const capsBtn = document.createElement('button');
+        capsBtn.type = 'button';
+        capsBtn.className = 'osk-key wide';
+        capsBtn.textContent = isCaps ? 'CAPS ON' : 'CAPS';
+        capsBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            isCaps = !isCaps;
+            renderKeyboard();
+        });
+
+        const shiftBtn = document.createElement('button');
+        shiftBtn.type = 'button';
+        shiftBtn.className = 'osk-key wide';
+        shiftBtn.textContent = isShift ? 'SHIFT ON' : 'SHIFT';
+        shiftBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            isShift = !isShift;
+            renderKeyboard();
+        });
 
         const backBtn = document.createElement('button');
         backBtn.type = 'button';
@@ -285,6 +318,8 @@ document.addEventListener('DOMContentLoaded', () => {
         clearBtn.textContent = 'Clear';
         clearBtn.addEventListener('click', (e) => { e.preventDefault(); clearAll(); });
 
+        controlRow.appendChild(capsBtn);
+        controlRow.appendChild(shiftBtn);
         controlRow.appendChild(backBtn);
         controlRow.appendChild(spaceBtn);
         controlRow.appendChild(clearBtn);
@@ -304,4 +339,58 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     closeBtn.addEventListener('click', hideKeyboard);
+});
+
+// Screensaver
+document.addEventListener('DOMContentLoaded', () => {
+    const saver = document.getElementById('screensaver');
+    const saverImg = document.getElementById('screensaverImg');
+    if (!saver || !saverImg) return;
+
+    let enabled = false;
+    let timeoutMs = 120000;
+    let photoUrl = '';
+    let timer = null;
+
+    function hideSaver() {
+        saver.classList.add('hidden');
+        saver.setAttribute('aria-hidden', 'true');
+    }
+
+    function showSaver() {
+        if (!enabled || !photoUrl) return;
+        saverImg.src = photoUrl;
+        saver.classList.remove('hidden');
+        saver.setAttribute('aria-hidden', 'false');
+    }
+
+    function resetTimer() {
+        if (timer) clearTimeout(timer);
+        if (!enabled) return;
+        timer = setTimeout(showSaver, timeoutMs);
+    }
+
+    function fetchConfig() {
+        fetch('/api/screensaver')
+            .then(res => res.json())
+            .then(data => {
+                enabled = !!data.enabled;
+                timeoutMs = Math.max(10, parseInt(data.timeout || 120, 10)) * 1000;
+                photoUrl = data.photo || '';
+                hideSaver();
+                resetTimer();
+            })
+            .catch(() => {});
+    }
+
+    ['click','touchstart','mousemove','keydown'].forEach(evt => {
+        document.addEventListener(evt, () => {
+            if (!saver.classList.contains('hidden')) {
+                hideSaver();
+            }
+            resetTimer();
+        }, { passive: true });
+    });
+
+    fetchConfig();
 });

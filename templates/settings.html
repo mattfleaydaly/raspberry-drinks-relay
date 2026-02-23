@@ -30,6 +30,19 @@
         </section>
 
         <section class="panel">
+            <div class="panel-title">Screensaver</div>
+            <div class="grid grid-4">
+                <button id="screensaverToggleBtn" class="btn btn-outline w-100">Enable</button>
+                <input id="screensaverTimeout" class="form-control osk-input" type="number" min="10" placeholder="Timeout (sec)">
+                <select id="screensaverPhoto" class="form-select"></select>
+                <button id="saveScreensaverBtn" class="btn btn-primary w-100">
+                    <i class="bi bi-save"></i> Save
+                </button>
+            </div>
+            <p class="section-note">Choose a photo from the library and set idle timeout.</p>
+        </section>
+
+        <section class="panel">
             <div class="panel-title">Actions</div>
             <div class="grid grid-4">
                 <button id="check-updates-btn" class="btn btn-primary w-100" onclick="checkForUpdates()">

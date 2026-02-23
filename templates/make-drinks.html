@@ -28,7 +28,10 @@
     <!-- Drinks Grid -->
     <div id="drinks-grid" class="drink-grid {% if not drinks %}d-none{% endif %}">
         {% for drink in drinks %}
-        <div class="drink-card">
+        <button class="drink-card drink-card-btn make-drink-btn"
+                data-drink-id="{{ loop.index0 }}"
+                data-drink-name="{{ drink.name }}"
+                data-total-time="{{ drink.steps|map(attribute='time')|sum }}">
             <div class="card-body text-center">
                 {% if drink.image %}
                 <img src="{{ drink.image }}" class="drink-photo" alt="{{ drink.name }}">
@@ -37,16 +40,9 @@
                 {% endif %}
                 <h5 class="card-title">{{ drink.name }}</h5>
                 <div class="drink-meta">{{ drink.steps|length }} steps</div>
+                <div class="section-note">Tap to pour</div>
             </div>
-            <div class="card-footer">
-                <button class="btn btn-primary w-100 make-drink-btn" 
-                        data-drink-id="{{ loop.index0 }}"
-                        data-drink-name="{{ drink.name }}"
-                        data-total-time="{{ drink.steps|map(attribute='time')|sum }}">
-                    <i class="bi bi-cup-hot"></i> Make
-                </button>
-            </div>
-        </div>
+        </button>
         {% endfor %}
     </div>
     </div>

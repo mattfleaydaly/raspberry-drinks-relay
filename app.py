@@ -1223,6 +1223,26 @@ def system_name():
     save_config(config)
     return jsonify({"success": True, "system_name": name})
 
+@app.route("/api/screensaver", methods=["GET", "POST"])
+def screensaver():
+    if request.method == "GET":
+        cfg = get_config()
+        return jsonify({
+            "enabled": cfg.get("screensaver_enabled", False),
+            "timeout": cfg.get("screensaver_timeout", 120),
+            "photo": cfg.get("screensaver_photo", "")
+        })
+    data = request.json or {}
+    cfg = get_config()
+    cfg["screensaver_enabled"] = bool(data.get("enabled", False))
+    try:
+        cfg["screensaver_timeout"] = int(data.get("timeout", 120))
+    except Exception:
+        cfg["screensaver_timeout"] = 120
+    cfg["screensaver_photo"] = data.get("photo", "")
+    save_config(cfg)
+    return jsonify({"success": True})
+
 @app.route("/check-updates")
 def check_updates():
     updates_available = random.choice([True, False])  # Simulate checking for updates

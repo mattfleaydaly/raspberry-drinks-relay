@@ -230,8 +230,13 @@ function initEventListeners() {
     });
 
     // Photo selector
-    document.getElementById('photoSelector')?.addEventListener('change', (e) => {
-        updatePhotoPreview(e.target.value);
+    document.getElementById('photoPickerBtn')?.addEventListener('click', () => {
+        openPhotoPicker();
+    });
+    document.getElementById('clearPhotoBtn')?.addEventListener('click', () => {
+        setSelectedPhoto('');
+        const modal = bootstrap.Modal.getInstance(document.getElementById('photoPickerModal'));
+        if (modal) modal.hide();
     });
     
     // Copy data button
@@ -408,14 +413,27 @@ function loadPhotoOptions() {
         .then(data => {
             if (!data.success) return;
             const current = selector.value;
-            selector.innerHTML = '<option value=\"\">No photo</option>';
-            data.photos.forEach(photo => {
-                const opt = document.createElement('option');
-                opt.value = photo.url;
-                opt.textContent = `${photo.folder}/${photo.name}`;
-                selector.appendChild(opt);
-            });
             selector.value = current || '';
+            const grid = document.getElementById('photoPickerGrid');
+            if (grid) {
+                grid.innerHTML = '';
+                data.photos.forEach(photo => {
+                    const card = document.createElement('button');
+                    card.type = 'button';
+                    card.className = 'btn btn-outline w-100';
+                    card.style.textAlign = 'left';
+                    card.innerHTML = `
+                        <img src="${photo.url}" alt="${photo.name}" style="width:100%; height:120px; object-fit:cover; border-radius:10px; margin-bottom:8px;">
+                        <div>${photo.folder}/${photo.name}</div>
+                    `;
+                    card.addEventListener('click', () => {
+                        setSelectedPhoto(photo.url);
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('photoPickerModal'));
+                        if (modal) modal.hide();
+                    });
+                    grid.appendChild(card);
+                });
+            }
         })
         .catch(() => {});
 }
@@ -431,6 +449,20 @@ function updatePhotoPreview(url) {
     }
     img.src = url;
     wrap.style.display = 'block';
+}
+
+function openPhotoPicker() {
+    loadPhotoOptions();
+    const modalEl = document.getElementById('photoPickerModal');
+    if (!modalEl) return;
+    const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+    modal.show();
+}
+
+function setSelectedPhoto(url) {
+    const selector = document.getElementById('photoSelector');
+    if (selector) selector.value = url || '';
+    updatePhotoPreview(url || '');
 }
 
 // Update the icon preview

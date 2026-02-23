@@ -74,13 +74,14 @@
 
                         <!-- Optional Photo -->
                         <div class="mb-3">
-                            <label for="photoSelector" class="form-label">Photo (optional)</label>
-                            <select class="form-select" id="photoSelector">
-                                <option value="">No photo</option>
-                            </select>
+                            <label class="form-label">Photo (optional)</label>
+                            <button type="button" class="btn btn-outline w-100" id="photoPickerBtn">
+                                <i class="bi bi-image"></i> Choose Photo
+                            </button>
+                            <input type="hidden" id="photoSelector" value="">
                             <div class="section-note mt-2">If a photo is selected, it will replace the icon on the drink card.</div>
                             <div class="mt-2" id="photoPreviewWrap" style="display:none;">
-                                <img id="photoPreview" src="" alt="Drink photo preview" style="max-width: 100%; max-height: 140px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1);">
+                                <img id="photoPreview" src="" alt="Drink photo preview" style="max-width: 100%; max-height: 160px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
                             </div>
                         </div>
                         
@@ -176,6 +177,25 @@
                 <div class="modal-footer border-secondary">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn-primary" id="setTimeBtn">Set</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Photo Picker Modal -->
+    <div class="modal fade" id="photoPickerModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Select Drink Photo</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="grid grid-3" id="photoPickerGrid"></div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-outline" data-bs-dismiss="modal">Cancel</button>
+                    <button class="btn btn-danger" id="clearPhotoBtn">Clear Photo</button>
                 </div>
             </div>
         </div>

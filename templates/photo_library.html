@@ -62,6 +62,18 @@
     
     <!-- Photo Library Display -->
     <div id="photosContainer"></div>
+
+    <!-- Library Manager -->
+    <div class="panel" style="margin-top: 24px;">
+        <div class="panel-title">Manage Library</div>
+        <div class="section-note">Tap photos to select, then delete in bulk.</div>
+        <div class="grid grid-3" id="libraryManagerGrid"></div>
+        <div class="grid grid-3" style="margin-top: 12px;">
+            <button class="btn btn-outline w-100" onclick="selectAllSaved()">Select All</button>
+            <button class="btn btn-outline w-100" onclick="clearSavedSelection()">Clear</button>
+            <button class="btn btn-danger w-100" onclick="deleteSelectedSaved()">Delete Selected</button>
+        </div>
+    </div>
     </div>
 </div>
 
@@ -203,6 +215,8 @@
     let selectedPhotos = new Set();
     let usbPhotos = [];
     let folders = [];
+    let savedPhotos = [];
+    let selectedSaved = new Set();
     
     // Initialize on page load
     document.addEventListener('DOMContentLoaded', function() {
@@ -336,6 +350,7 @@
         .then(data => {
             folders = data.data.folders;
             updateLibraryView(data.data);
+            loadSavedPhotos();
         })
         .catch(err => console.error('Error loading library:', err));
     }
@@ -430,6 +445,63 @@
                 moreDiv.innerHTML = `<small>... and ${photoCount - 6} more photos</small>`;
                 folderPhotosDiv.appendChild(moreDiv);
             }
+        });
+    }
+
+    function loadSavedPhotos() {
+        fetch('/api/photo-library/list-saved')
+            .then(res => res.json())
+            .then(data => {
+                if (!data.success) return;
+                savedPhotos = data.photos || [];
+                renderSavedManager();
+            })
+            .catch(() => {});
+    }
+
+    function renderSavedManager() {
+        const grid = document.getElementById('libraryManagerGrid');
+        if (!grid) return;
+        grid.innerHTML = '';
+        savedPhotos.forEach((photo, idx) => {
+            const card = document.createElement('div');
+            card.className = 'photo-card' + (selectedSaved.has(idx) ? ' selected' : '');
+            card.innerHTML = `
+                <img src="${photo.url}" alt="${photo.name}">
+                <div class="select-overlay">✓</div>
+                <div class="p-2 small text-truncate">${photo.folder}/${photo.name}</div>
+            `;
+            card.onclick = () => {
+                if (selectedSaved.has(idx)) selectedSaved.delete(idx);
+                else selectedSaved.add(idx);
+                renderSavedManager();
+            };
+            grid.appendChild(card);
+        });
+    }
+
+    function selectAllSaved() {
+        selectedSaved = new Set(savedPhotos.map((_, i) => i));
+        renderSavedManager();
+    }
+
+    function clearSavedSelection() {
+        selectedSaved.clear();
+        renderSavedManager();
+    }
+
+    function deleteSelectedSaved() {
+        if (selectedSaved.size === 0) return;
+        if (!confirm(`Delete ${selectedSaved.size} photo(s)? This cannot be undone.`)) return;
+        const toDelete = Array.from(selectedSaved).map(i => savedPhotos[i].name);
+        const deletePromises = toDelete.map(name => fetch('/api/photo-library/manage', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({action: 'delete_photo', photo: name})
+        }));
+        Promise.all(deletePromises).then(() => {
+            selectedSaved.clear();
+            loadLibrary();
         });
     }
     

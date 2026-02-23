@@ -143,6 +143,68 @@ function saveSystemName() {
     .catch(() => alert('Failed to update system name'));
 }
 
+function loadScreensaver() {
+    const toggleBtn = document.getElementById('screensaverToggleBtn');
+    const timeoutInput = document.getElementById('screensaverTimeout');
+    const photoSelect = document.getElementById('screensaverPhoto');
+    if (!toggleBtn || !timeoutInput || !photoSelect) return;
+
+    fetch('/api/photo-library/list-saved')
+        .then(res => res.json())
+        .then(data => {
+            if (!data.success) return;
+            photoSelect.innerHTML = '<option value=\"\">No photo</option>';
+            data.photos.forEach(photo => {
+                const opt = document.createElement('option');
+                opt.value = photo.url;
+                opt.textContent = `${photo.folder}/${photo.name}`;
+                photoSelect.appendChild(opt);
+            });
+        })
+        .catch(() => {});
+
+    fetch('/api/screensaver')
+        .then(res => res.json())
+        .then(data => {
+            toggleBtn.textContent = data.enabled ? 'Enabled' : 'Disabled';
+            toggleBtn.className = data.enabled ? 'btn btn-success w-100' : 'btn btn-outline w-100';
+            timeoutInput.value = data.timeout || 120;
+            photoSelect.value = data.photo || '';
+        })
+        .catch(() => {});
+}
+
+function toggleScreensaver() {
+    const toggleBtn = document.getElementById('screensaverToggleBtn');
+    if (!toggleBtn) return;
+    const enabled = !toggleBtn.classList.contains('btn-success');
+    toggleBtn.textContent = enabled ? 'Enabled' : 'Disabled';
+    toggleBtn.className = enabled ? 'btn btn-success w-100' : 'btn btn-outline w-100';
+}
+
+function saveScreensaver() {
+    const toggleBtn = document.getElementById('screensaverToggleBtn');
+    const timeoutInput = document.getElementById('screensaverTimeout');
+    const photoSelect = document.getElementById('screensaverPhoto');
+    if (!toggleBtn || !timeoutInput || !photoSelect) return;
+    const enabled = toggleBtn.classList.contains('btn-success');
+    const timeout = parseInt(timeoutInput.value || '120', 10);
+    const photo = photoSelect.value || '';
+    fetch('/api/screensaver', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled, timeout, photo })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            alert('Screensaver settings saved');
+        } else {
+            alert('Failed to save screensaver settings');
+        }
+    })
+    .catch(() => alert('Failed to save screensaver settings'));
+}
 // UPDATED WiFi Functions - Enhanced with NetworkManager support
 
 // Open WiFi Config Modal with NetworkManager status check
@@ -883,6 +945,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (saveBtn) {
         saveBtn.addEventListener('click', saveSystemName);
     }
+    loadScreensaver();
+    const toggleBtn = document.getElementById('screensaverToggleBtn');
+    const saveScreensaverBtn = document.getElementById('saveScreensaverBtn');
+    if (toggleBtn) toggleBtn.addEventListener('click', toggleScreensaver);
+    if (saveScreensaverBtn) saveScreensaverBtn.addEventListener('click', saveScreensaver);
     // Initialize all modals
     document.querySelectorAll('.modal').forEach(modalElement => {
         new bootstrap.Modal(modalElement);
