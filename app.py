@@ -35,6 +35,21 @@ relay_pins = {
 # Add test locking mechanism
 test_lock = Lock()
 test_in_progress = False
+drink_progress = {
+    "active": False,
+    "drink_name": None,
+    "started_at": None,
+    "total_time": 0,
+    "current_step": 0,
+    "steps": 0
+}
+self_test_progress = {
+    "active": False,
+    "relay": None,
+    "action": None,
+    "step": 0,
+    "steps": 0
+}
 
 # Constants
 DRINKS_CONFIG_FILE = "drinks.json"
@@ -68,6 +83,28 @@ def backup_state():
         if os.path.exists(src):
             shutil.copy2(src, os.path.join(dest, name))
     return dest
+
+def write_commit_marker(name, commit):
+    try:
+        with open(os.path.join(BASE_DIR, name), "w") as f:
+            f.write(commit.strip() + "\n")
+    except Exception:
+        pass
+
+def read_commit_marker(name):
+    try:
+        path = os.path.join(BASE_DIR, name)
+        if not os.path.exists(path):
+            return None
+        with open(path, "r") as f:
+            return f.read().strip()
+    except Exception:
+        return None
+
+def health_check():
+    # Lightweight sanity check: Python syntax compile
+    result = run_cmd(["python3", "-m", "py_compile", os.path.join(BASE_DIR, "app.py")])
+    return result.returncode == 0, (result.stderr or result.stdout).strip()
 
 def preflight_checks():
     # Disk space
@@ -730,6 +767,11 @@ def self_test():
     try:
         with test_lock:
             test_in_progress = True
+            self_test_progress["active"] = True
+            self_test_progress["relay"] = None
+            self_test_progress["action"] = None
+            self_test_progress["step"] = 0
+            self_test_progress["steps"] = len(relay_pins) * 4
             
             # Reset all relays to OFF first
             initialize_relay_states()
@@ -738,6 +780,9 @@ def self_test():
             # Run a clear on/off sequence for each relay
             for relay_name, relay in relay_pins.items():
                 # Pulse on
+                self_test_progress["step"] += 1
+                self_test_progress["relay"] = relay_name
+                self_test_progress["action"] = "ON"
                 relay.on()
                 states = load_relay_states()
                 states[relay_name] = True
@@ -745,6 +790,8 @@ def self_test():
                 time.sleep(0.6)
 
                 # Pulse off
+                self_test_progress["step"] += 1
+                self_test_progress["action"] = "OFF"
                 relay.off()
                 states = load_relay_states()
                 states[relay_name] = False
@@ -752,6 +799,8 @@ def self_test():
                 time.sleep(0.3)
 
                 # Second pulse on
+                self_test_progress["step"] += 1
+                self_test_progress["action"] = "ON"
                 relay.on()
                 states = load_relay_states()
                 states[relay_name] = True
@@ -759,6 +808,8 @@ def self_test():
                 time.sleep(0.4)
 
                 # Final off before moving on
+                self_test_progress["step"] += 1
+                self_test_progress["action"] = "OFF"
                 relay.off()
                 states = load_relay_states()
                 states[relay_name] = False
@@ -772,6 +823,7 @@ def self_test():
         return jsonify({"status": f"Error during self test: {str(e)}"}), 500
     finally:
         test_in_progress = False
+        self_test_progress["active"] = False
 
 @app.route("/toggle-all/<state>")
 def toggle_all(state):
@@ -1180,6 +1232,9 @@ def git_pull():
         backup_state()
 
         repo_path = BASE_DIR
+        current = run_cmd(["git", "-C", repo_path, "rev-parse", "HEAD"])
+        if current.returncode == 0 and current.stdout.strip():
+            write_commit_marker(".pre_update_commit", current.stdout.strip())
         fsck = run_cmd(["git", "-C", repo_path, "fsck", "--full"])
         if fsck.returncode != 0:
             # Attempt repair by reinitializing from origin
@@ -1206,7 +1261,35 @@ def git_pull():
         if reset.returncode != 0:
             return jsonify({"success": False, "error": reset.stderr or reset.stdout})
 
+        ok_health, health_msg = health_check()
+        if not ok_health:
+            # Auto rollback
+            prev = read_commit_marker(".pre_update_commit")
+            if prev:
+                run_cmd(["git", "-C", repo_path, "reset", "--hard", prev])
+                return jsonify({"success": False, "error": f"Update failed health check. Rolled back. {health_msg}"})
+            return jsonify({"success": False, "error": f"Update failed health check. {health_msg}"})
+
+        # Mark last known good
+        new_head = run_cmd(["git", "-C", repo_path, "rev-parse", "HEAD"])
+        if new_head.returncode == 0 and new_head.stdout.strip():
+            write_commit_marker(".last_good_commit", new_head.stdout.strip())
+
         return jsonify({"success": True, "output": f"Updated to {branch}\n{reset.stdout.strip()}"})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/rollback", methods=["POST"])
+def rollback_update():
+    try:
+        repo_path = BASE_DIR
+        target = read_commit_marker(".pre_update_commit") or read_commit_marker(".last_good_commit")
+        if not target:
+            return jsonify({"success": False, "error": "No rollback point available"})
+        reset = run_cmd(["git", "-C", repo_path, "reset", "--hard", target])
+        if reset.returncode != 0:
+            return jsonify({"success": False, "error": reset.stderr or reset.stdout})
+        return jsonify({"success": True, "message": f"Rolled back to {target[:7]}"})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
@@ -1445,13 +1528,21 @@ def make_drink(drink_id):
             try:
                 with test_lock:
                     test_in_progress = True
+                    # Initialize progress tracking
+                    drink_progress["active"] = True
+                    drink_progress["drink_name"] = drink["name"]
+                    drink_progress["started_at"] = time.time()
+                    drink_progress["total_time"] = sum(step["time"] for step in drink["steps"])
+                    drink_progress["current_step"] = 0
+                    drink_progress["steps"] = len(drink["steps"])
                     
                     # Reset all relays to OFF first
                     initialize_relay_states()
                     time.sleep(0.5)  # Small delay after reset
                     
                     # Execute each step in the sequence
-                    for step in drink["steps"]:
+                    for idx, step in enumerate(drink["steps"], start=1):
+                        drink_progress["current_step"] = idx
                         relay_name = f"Relay {step['relay']}"
                         relay = relay_pins.get(relay_name)
                         if relay:
@@ -1472,6 +1563,7 @@ def make_drink(drink_id):
                     initialize_relay_states()
             finally:
                 test_in_progress = False
+                drink_progress["active"] = False
         
         # Start the drink making process in a separate thread
         threading.Thread(target=make_drink_thread).start()
@@ -1479,10 +1571,40 @@ def make_drink(drink_id):
         return jsonify({
             "success": True, 
             "message": f"Making {drink['name']}...",
-            "total_time": sum(step["time"] for step in drink["steps"])
+            "total_time": sum(step["time"] for step in drink["steps"]),
+            "estimated_time": sum(step["time"] for step in drink["steps"]) + 0.5 + (0.2 * len(drink["steps"]))
         })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/drink-progress", methods=["GET"])
+def get_drink_progress():
+    if not drink_progress["active"]:
+        return jsonify({"active": False})
+    elapsed = time.time() - (drink_progress["started_at"] or time.time())
+    total = max(1, drink_progress["total_time"])
+    percent = min(100, (elapsed / total) * 100)
+    return jsonify({
+        "active": True,
+        "drink_name": drink_progress["drink_name"],
+        "elapsed": elapsed,
+        "total_time": total,
+        "percent": percent,
+        "current_step": drink_progress["current_step"],
+        "steps": drink_progress["steps"]
+    })
+
+@app.route("/api/self-test-progress", methods=["GET"])
+def get_self_test_progress():
+    if not self_test_progress["active"]:
+        return jsonify({"active": False})
+    return jsonify({
+        "active": True,
+        "relay": self_test_progress["relay"],
+        "action": self_test_progress["action"],
+        "step": self_test_progress["step"],
+        "steps": self_test_progress["steps"]
+    })
 
 if __name__ == "__main__":
     initialize_relay_states()  # Reset states on startup

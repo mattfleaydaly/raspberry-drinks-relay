@@ -5,41 +5,52 @@ let currentDrinkTime = 0;
 let progressInterval = null;
 let progressStartTime = 0;
 let progressPhase = -1;
+let serverPoll = null;
 const commentaryPhases = [
     [
         'Warming up the pumps...',
         'Priming the flow...',
         'Engaging beverage thrusters...',
         'Kickstarting the mix...',
-        'Letting the machines do their thing...'
+        'Letting the machines do their thing...',
+        'Igniting pour protocol...',
+        'Booting the liquid engine...'
     ],
     [
         'Mixing the base...',
         'Laying down the foundation...',
         'Summoning the main pour...',
         'Stirring up something dangerous...',
-        'Dialing in the good stuff...'
+        'Dialing in the good stuff...',
+        'Building the backbone...',
+        'Foundation is going down...'
     ],
     [
         'Balancing flavors...',
         'Adding a little chaos...',
         'Fine-tuning the brew...',
         'Leveling up the vibe...',
-        'Adjusting the flavor matrix...'
+        'Adjusting the flavor matrix...',
+        'Tuning the legend...',
+        'Flavor calibration in progress...'
     ],
     [
         'Finishing the pour...',
         'Pouring with purpose...',
         'Closing out the mix...',
         'Final calibration...',
-        'Last pass, no mercy...'
+        'Last pass, no mercy...',
+        'Final strokes of greatness...',
+        'Topping it off like a pro...'
     ],
     [
         'Almost ready...',
         'Final moments...',
         'Just about there...',
         'Brace yourself...',
-        'The legend is about to be served...'
+        'The legend is about to be served...',
+        'Get the glass ready...',
+        'Victory is pouring...'
     ]
 ];
 
@@ -48,11 +59,23 @@ const commentarySubtitles = [
     'Crafting chaos, one pour at a time.',
     'Respect the pour.',
     'Grip the cup. Greatness incoming.',
-    'This machine does not miss.'
+    'This machine does not miss.',
+    'Mr G approved. Zero hesitation.',
+    'Engineered for legends.',
+    'Pouring with confidence.',
+    'If it pours, it scores.'
 ];
 
-function pickRandom(list) {
-    return list[Math.floor(Math.random() * list.length)];
+const lastPick = new Map();
+function pickRandom(list, key = 'default') {
+    if (!list.length) return '';
+    const prev = lastPick.get(key);
+    let next = list[Math.floor(Math.random() * list.length)];
+    if (list.length > 1 && next === prev) {
+        next = list[(list.indexOf(prev) + 1) % list.length];
+    }
+    lastPick.set(key, next);
+    return next;
 }
 
 // Initialize the page
@@ -158,6 +181,7 @@ function makeDrink() {
     
     // Start progress tracking
     startProgressTracking();
+    startServerProgressPolling();
     
     // Send make drink request to server
     fetch(`/api/make-drink/${currentDrinkId}`, {
@@ -171,8 +195,9 @@ function makeDrink() {
     })
     .then(data => {
         if (data.success) {
-            if (data.total_time && Number.isFinite(data.total_time)) {
-                currentDrinkTime = Math.max(3, data.total_time);
+            const estimate = Number.isFinite(data.estimated_time) ? data.estimated_time : data.total_time;
+            if (estimate && Number.isFinite(estimate)) {
+                currentDrinkTime = Math.max(3, estimate);
             }
             // Let the progress bar continue until completion
             console.log('Making drink:', data.message);
@@ -180,10 +205,11 @@ function makeDrink() {
             throw new Error(data.error || 'Failed to make drink');
         }
     })
-    .catch(error => {
-        console.error('Error making drink:', error);
-        stopProgressTracking();
-        showErrorModal(error.message);
+        .catch(error => {
+            console.error('Error making drink:', error);
+            stopProgressTracking();
+            stopServerProgressPolling();
+            showErrorModal(error.message);
         
         // Hide status banner
         if (statusOverlay) statusOverlay.classList.add('d-none');
@@ -221,6 +247,10 @@ function updateProgress() {
         progressBar.setAttribute('aria-valuenow', percentComplete);
     }
 
+    if (serverPoll) {
+        return;
+    }
+
     // Update commentary
     const statusMessage = document.getElementById('status-message');
     const statusSubtitle = document.getElementById('status-subtitle');
@@ -231,9 +261,9 @@ function updateProgress() {
                           percentComplete < 90 ? 3 : 4;
         if (nextPhase !== progressPhase) {
             progressPhase = nextPhase;
-            statusMessage.textContent = pickRandom(commentaryPhases[progressPhase]);
+            statusMessage.textContent = pickRandom(commentaryPhases[progressPhase], `phase-${progressPhase}`);
             if (statusSubtitle) {
-                statusSubtitle.textContent = `${currentDrinkName} • ${pickRandom(commentarySubtitles)}`;
+                statusSubtitle.textContent = `${currentDrinkName} • ${pickRandom(commentarySubtitles, 'subtitle')}`;
             }
         }
     }
@@ -251,6 +281,43 @@ function stopProgressTracking() {
     if (progressInterval) {
         clearInterval(progressInterval);
         progressInterval = null;
+    }
+}
+
+function startServerProgressPolling() {
+    if (serverPoll) clearInterval(serverPoll);
+    serverPoll = setInterval(() => {
+        fetch('/api/drink-progress')
+            .then(res => res.json())
+            .then(data => {
+                if (!data.active) return;
+                const progressBar = document.getElementById('progress-bar');
+                if (progressBar) {
+                    progressBar.style.width = `${data.percent}%`;
+                    progressBar.setAttribute('aria-valuenow', data.percent);
+                }
+                const statusMessage = document.getElementById('status-message');
+                const statusSubtitle = document.getElementById('status-subtitle');
+                if (statusMessage) {
+                    statusMessage.textContent = pickRandom(commentaryPhases[Math.min(4, Math.floor((data.percent / 100) * 5))]);
+                }
+                if (statusSubtitle && data.drink_name) {
+                    statusSubtitle.textContent = `${data.drink_name} • Step ${data.current_step}/${data.steps}`;
+                }
+                if (data.percent >= 100 && data.elapsed >= data.total_time) {
+                    stopServerProgressPolling();
+                    stopProgressTracking();
+                    setTimeout(() => drinkComplete(), 800);
+                }
+            })
+            .catch(() => {});
+    }, 500);
+}
+
+function stopServerProgressPolling() {
+    if (serverPoll) {
+        clearInterval(serverPoll);
+        serverPoll = null;
     }
 }
 

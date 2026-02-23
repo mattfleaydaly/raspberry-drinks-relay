@@ -2,6 +2,7 @@
 let allRelaysOn = false;
 let testInProgress = false;
 let currentModal = null; // Track the current modal instance
+let selfTestPoll = null;
 
 // Log message function
 function logMessage(message) {
@@ -53,6 +54,13 @@ function showModal(title, message) {
     const bsModal = new bootstrap.Modal(modal);
     bsModal.show();
     currentModal = bsModal;
+}
+
+function updateModalMessage(message) {
+    const modal = document.getElementById('test-modal');
+    if (!modal) return;
+    const modalBody = modal.querySelector('.modal-body p');
+    if (modalBody) modalBody.textContent = message;
 }
 
 // Close modal function
@@ -226,8 +234,9 @@ function selfTest() {
         button.classList.add('opacity-75');
     }
     
-    showModal('Self Test', 'Running relay self test (sequential on/off)...'); // Show initial modal
+    showModal('Self Test', 'Running relay self test (sequential on/off)...');
     logMessage('Starting relay self test (sequential)...');
+    startSelfTestPolling();
     
     fetch('/self-test')
         .then(response => {
@@ -241,6 +250,7 @@ function selfTest() {
             disableRelayButtons(false); // Re-enable relay buttons after the test
             showModal('Self Test Completed', data.status);
             logMessage(`Self test completed: ${data.status}`);
+            stopSelfTestPolling();
             
             if (button) {
                 button.classList.remove('opacity-75');
@@ -250,6 +260,7 @@ function selfTest() {
             console.error('Error performing self-test:', err);
             testInProgress = false;
             disableRelayButtons(false);
+            stopSelfTestPolling();
             
             if (button) {
                 button.classList.remove('opacity-75');
@@ -263,6 +274,28 @@ function selfTest() {
                 logMessage('Self test failed: An error occurred');
             }
         });
+}
+
+function startSelfTestPolling() {
+    if (selfTestPoll) clearInterval(selfTestPoll);
+    selfTestPoll = setInterval(() => {
+        fetch('/api/self-test-progress')
+            .then(res => res.json())
+            .then(data => {
+                if (!data.active) return;
+                const msg = `Testing ${data.relay}: ${data.action} (step ${data.step}/${data.steps})`;
+                updateModalMessage(msg);
+                logMessage(msg);
+            })
+            .catch(() => {});
+    }, 400);
+}
+
+function stopSelfTestPolling() {
+    if (selfTestPoll) {
+        clearInterval(selfTestPoll);
+        selfTestPoll = null;
+    }
 }
 
 // Disable or enable relay buttons

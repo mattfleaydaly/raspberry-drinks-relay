@@ -1019,6 +1019,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     const versionBtn = document.getElementById('versionHistoryBtn');
     if (versionBtn) versionBtn.addEventListener('click', openVersionHistory);
+    const rollbackBtn = document.getElementById('rollbackBtn');
+    if (rollbackBtn) {
+        rollbackBtn.addEventListener('click', async () => {
+            const ok = await window.appConfirm('Rollback to the last known good version?');
+            if (!ok) return;
+            fetch('/api/rollback', { method: 'POST' })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        window.appAlert(data.message);
+                        setTimeout(() => controlSystem('reboot'), 1500);
+                    } else {
+                        window.appAlert(data.error || 'Rollback failed');
+                    }
+                })
+                .catch(() => window.appAlert('Rollback failed'));
+        });
+    }
     // Initialize all modals
     document.querySelectorAll('.modal').forEach(modalElement => {
         new bootstrap.Modal(modalElement);
