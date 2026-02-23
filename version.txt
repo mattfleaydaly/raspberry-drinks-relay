@@ -1,3 +1,5 @@
+V3.0.0 - Safe update pipeline: preflight checks, backups, corruption recovery; stability-first for Mr G
+V2.9.0 - Final polish: faster mouse hide, UX fixes, Mr G's masterpiece machine gets the spotlight
 V2.8.0 - Auto-dismiss drink completion, full-screen animated screensaver, polish for Mr G (Greg)
 V2.7.0 - Safer shutdown hold, full-screen drink commentary, live log page, UI refinements
 V2.6.0 - Shutdown hold button, live drink commentary, screensaver upgrades, library cleanup

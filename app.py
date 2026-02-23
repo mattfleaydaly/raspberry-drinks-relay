@@ -10,8 +10,11 @@ from threading import Lock
 import subprocess
 from werkzeug.utils import secure_filename
 import shutil
+from datetime import datetime
 
 app = Flask(__name__)
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 @app.context_processor
 def inject_system_name():
@@ -44,6 +47,39 @@ def run_command(command):
         return result.stdout.strip()
     except Exception as e:
         return str(e)
+
+def run_cmd(args, cwd=None, shell=False):
+    return subprocess.run(
+        args,
+        cwd=cwd,
+        shell=shell,
+        text=True,
+        capture_output=True
+    )
+
+def backup_state():
+    backup_dir = os.path.join(BASE_DIR, "backups")
+    os.makedirs(backup_dir, exist_ok=True)
+    stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    dest = os.path.join(backup_dir, f"backup-{stamp}")
+    os.makedirs(dest, exist_ok=True)
+    for name in ["config.json", "drinks.json", "photo_library.json", "relay_states.json"]:
+        src = os.path.join(BASE_DIR, name)
+        if os.path.exists(src):
+            shutil.copy2(src, os.path.join(dest, name))
+    return dest
+
+def preflight_checks():
+    # Disk space
+    usage = shutil.disk_usage(BASE_DIR)
+    free_mb = usage.free // (1024 * 1024)
+    if free_mb < 200:
+        return False, f"Low disk space: {free_mb}MB free"
+    # Network check
+    ping = run_cmd(["/bin/ping", "-c", "1", "-W", "2", "8.8.8.8"])
+    if ping.returncode != 0:
+        return False, "Network check failed (no internet)"
+    return True, "Preflight OK"
 
 # Initialize relay states
 def initialize_relay_states():
@@ -1106,6 +1142,11 @@ def reset_network_settings():
 @app.route("/system-update-logs")
 def system_update_logs():
     def generate():
+        ok, msg = preflight_checks()
+        if not ok:
+            yield f"data: Preflight failed: {msg}\n\n"
+            return
+        yield "data: Preflight OK. Starting system update...\n\n"
         # Fix: Use shell=True and pass the command as a single string
         process = subprocess.Popen(
             "sudo apt-get update && sudo apt-get full-upgrade -y",
@@ -1130,17 +1171,42 @@ def system_update_logs():
 
 @app.route("/git-pull")
 def git_pull():
-    """Run git pull to update the app."""
+    """Safely update the app repository."""
     try:
-        result = subprocess.run(
-            ["git", "-C", "/home/pi/raspberry-drinks-relay", "pull"],
-            capture_output=True,
-            text=True
-        )
-        if result.returncode == 0:
-            return jsonify({"success": True, "output": result.stdout})
-        else:
-            return jsonify({"success": False, "error": result.stderr})
+        ok, msg = preflight_checks()
+        if not ok:
+            return jsonify({"success": False, "error": f"Preflight failed: {msg}"})
+
+        backup_state()
+
+        repo_path = BASE_DIR
+        fsck = run_cmd(["git", "-C", repo_path, "fsck", "--full"])
+        if fsck.returncode != 0:
+            # Attempt repair by reinitializing from origin
+            origin = run_cmd(["git", "-C", repo_path, "remote", "get-url", "origin"])
+            if origin.returncode != 0:
+                return jsonify({"success": False, "error": "Git corruption detected and no origin remote found"})
+            origin_url = origin.stdout.strip()
+            # Remove .git and re-init
+            shutil.rmtree(os.path.join(repo_path, ".git"), ignore_errors=True)
+            run_cmd(["git", "-C", repo_path, "init"])
+            run_cmd(["git", "-C", repo_path, "remote", "add", "origin", origin_url])
+
+        # Fetch and hard reset to origin/HEAD
+        fetch = run_cmd(["git", "-C", repo_path, "fetch", "--all", "--prune"])
+        if fetch.returncode != 0:
+            return jsonify({"success": False, "error": fetch.stderr or fetch.stdout})
+
+        head = run_cmd(["git", "-C", repo_path, "symbolic-ref", "refs/remotes/origin/HEAD"])
+        branch = "origin/main"
+        if head.returncode == 0 and head.stdout.strip():
+            branch = head.stdout.strip().replace("refs/remotes/", "")
+
+        reset = run_cmd(["git", "-C", repo_path, "reset", "--hard", branch])
+        if reset.returncode != 0:
+            return jsonify({"success": False, "error": reset.stderr or reset.stdout})
+
+        return jsonify({"success": True, "output": f"Updated to {branch}\n{reset.stdout.strip()}"})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
@@ -1258,7 +1324,7 @@ def version_history():
 def system_log():
     try:
         result = subprocess.run(
-            ["journalctl", "-u", "relay-control.service", "-n", "200", "--no-pager"],
+            ["journalctl", "-u", "relay-control.service", "-n", "200", "-r", "--no-pager"],
             capture_output=True,
             text=True
         )

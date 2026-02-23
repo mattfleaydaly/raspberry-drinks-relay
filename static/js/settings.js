@@ -34,7 +34,7 @@ function checkForUpdates() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                updateLogs.innerHTML += "Git pull successful.\n";
+                updateLogs.innerHTML += "Safe update successful.\n";
                 updateLogs.innerHTML += data.output + "\n";
                 updateLogs.innerHTML += "Rebooting system in 5 seconds...\n";
                 
@@ -46,7 +46,7 @@ function checkForUpdates() {
                     controlSystem('reboot');
                 }, 5000);
             } else {
-                updateLogs.innerHTML += "Git pull failed:\n";
+                updateLogs.innerHTML += "Safe update failed:\n";
                 updateLogs.innerHTML += data.error + "\n";
             }
             

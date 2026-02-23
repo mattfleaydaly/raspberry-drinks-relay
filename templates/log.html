@@ -33,10 +33,14 @@
                 if (!el) return;
                 if (data.success) el.textContent = data.log || 'No logs available.';
                 else el.textContent = data.error || 'Failed to load logs.';
+                el.scrollTop = 0;
             })
             .catch(() => {
                 const el = document.getElementById('systemLog');
-                if (el) el.textContent = 'Failed to load logs.';
+                if (el) {
+                    el.textContent = 'Failed to load logs.';
+                    el.scrollTop = 0;
+                }
             });
     }
     document.addEventListener('DOMContentLoaded', refreshLogs);
