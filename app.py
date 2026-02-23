@@ -114,6 +114,10 @@ def get_config():
     with open("config.json", "r") as f:
         return json.load(f)
 
+def save_config(config):
+    with open("config.json", "w") as f:
+        json.dump(config, f, indent=4)
+
 # Helper function to check NetworkManager status
 def check_networkmanager_status():
     """Check if NetworkManager is properly configured."""
@@ -153,7 +157,9 @@ USB_MOUNT_PATHS = [
     '/media/pi', 
     '/run/media/pi',
     f'/media/{os.getenv("USER", "pi")}',
-    '/media/usb'
+    '/media/usb',
+    '/media/usb0',
+    '/media/usb1'
 ]
 
 def load_photo_library():
@@ -168,15 +174,48 @@ def save_photo_library(data):
         json.dump(data, f, indent=2)
 
 def find_usb_mount():
-    """Find the first available USB mount point"""
+    """Find the first available USB mount point (including submounts)."""
+    # First, scan known mount roots
     for path in USB_MOUNT_PATHS:
-        if os.path.exists(path) and os.path.ismount(path):
+        if not os.path.exists(path):
+            continue
+
+        # If the path itself is a mount, use it.
+        if os.path.ismount(path):
             try:
-                # Test if we can list the directory
                 os.listdir(path)
                 return path
             except PermissionError:
                 continue
+
+        # If it's a directory, check its immediate subfolders for mounts (e.g., /media/pi/USB)
+        if os.path.isdir(path):
+            try:
+                for entry in os.listdir(path):
+                    subpath = os.path.join(path, entry)
+                    if os.path.ismount(subpath):
+                        try:
+                            os.listdir(subpath)
+                            return subpath
+                        except PermissionError:
+                            continue
+            except PermissionError:
+                continue
+
+    # Fallback: parse lsblk to discover removable USB mounts
+    try:
+        lsblk_result = subprocess.run(['lsblk', '-f'], capture_output=True, text=True)
+        for line in lsblk_result.stdout.splitlines():
+            if 'vfat' in line.lower() or 'exfat' in line.lower() or 'ntfs' in line.lower():
+                parts = line.split()
+                if parts:
+                    mountpoints = parts[-1:]
+                    for mp in mountpoints:
+                        if os.path.exists(mp) and os.path.ismount(mp):
+                            return mp
+    except Exception:
+        pass
+
     return None
 
 def get_image_files(directory):
@@ -375,6 +414,7 @@ def debug_usb():
             'existing_paths': [],
             'mounted_paths': [],
             'accessible_paths': [],
+            'detected_mount': None,
             'mount_output': '',
             'lsblk_output': '',
             'udisks2_installed': False
@@ -400,6 +440,27 @@ def debug_usb():
                             'path': path,
                             'error': 'Permission denied'
                         })
+                # If this is a directory, check subfolders for mounts
+                if os.path.isdir(path):
+                    try:
+                        for entry in os.listdir(path):
+                            subpath = os.path.join(path, entry)
+                            if os.path.ismount(subpath):
+                                debug_info['mounted_paths'].append(subpath)
+                                try:
+                                    files = os.listdir(subpath)
+                                    debug_info['accessible_paths'].append({
+                                        'path': subpath,
+                                        'files': len(files),
+                                        'sample_files': files[:5]
+                                    })
+                                except PermissionError:
+                                    debug_info['accessible_paths'].append({
+                                        'path': subpath,
+                                        'error': 'Permission denied'
+                                    })
+                    except PermissionError:
+                        pass
         
         # Get mount command output
         try:
@@ -421,6 +482,9 @@ def debug_usb():
             debug_info['udisks2_installed'] = True
         except:
             debug_info['udisks2_installed'] = False
+
+        # Report detected mount using shared logic
+        debug_info['detected_mount'] = find_usb_mount()
         
         return jsonify(debug_info)
         
@@ -1118,6 +1182,19 @@ def settings():
     version = get_latest_version()
     local_ip = get_local_ip()
     return render_template("settings.html", version=version, local_ip=local_ip)
+
+@app.route("/api/system-name", methods=["GET", "POST"])
+def system_name():
+    if request.method == "GET":
+        return jsonify({"system_name": get_config().get("system_name", "Drinks Bro")})
+    data = request.json or {}
+    name = data.get("system_name", "").strip()
+    if not name:
+        return jsonify({"success": False, "error": "System name required"}), 400
+    config = get_config()
+    config["system_name"] = name
+    save_config(config)
+    return jsonify({"success": True, "system_name": name})
 
 @app.route("/check-updates")
 def check_updates():

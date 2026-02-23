@@ -355,6 +355,72 @@ input, textarea, select {
     opacity: 1;
 }
 
+/* On-screen keyboard */
+.osk {
+    position: fixed;
+    left: 16px;
+    right: 16px;
+    bottom: 12px;
+    background: rgba(10, 15, 22, 0.95);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+    padding: 12px;
+    z-index: 2000;
+}
+
+.osk.hidden {
+    display: none;
+}
+
+.osk-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.osk-title {
+    font-size: 0.85rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+.osk-close {
+    min-height: 40px;
+    padding: 6px 12px;
+    border-radius: var(--radius-xs);
+}
+
+.osk-keys {
+    display: grid;
+    gap: 8px;
+}
+
+.osk-row {
+    display: grid;
+    grid-template-columns: repeat(10, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.osk-key {
+    min-height: 44px;
+    border-radius: var(--radius-xs);
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text);
+    font-weight: 600;
+}
+
+.osk-key.wide {
+    grid-column: span 3;
+}
+
+.osk-key.wider {
+    grid-column: span 5;
+}
+
 .section-note {
     color: var(--muted);
     font-size: 0.9rem;

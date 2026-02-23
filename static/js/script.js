@@ -179,3 +179,121 @@ document.addEventListener('shown.bs.modal', (event) => {
         enableDragScroll(modalDialog);
     }
 });
+
+// On-screen keyboard for touch inputs
+document.addEventListener('DOMContentLoaded', () => {
+    const osk = document.getElementById('osk');
+    if (!osk) return;
+
+    const keys = [
+        ['1','2','3','4','5','6','7','8','9','0'],
+        ['q','w','e','r','t','y','u','i','o','p'],
+        ['a','s','d','f','g','h','j','k','l','-'],
+        ['z','x','c','v','b','n','m','.', '_', '@']
+    ];
+
+    const keysContainer = osk.querySelector('.osk-keys');
+    const closeBtn = osk.querySelector('.osk-close');
+    let activeInput = null;
+
+    function showKeyboard(input) {
+        activeInput = input;
+        osk.classList.remove('hidden');
+        osk.setAttribute('aria-hidden', 'false');
+    }
+
+    function hideKeyboard() {
+        activeInput = null;
+        osk.classList.add('hidden');
+        osk.setAttribute('aria-hidden', 'true');
+    }
+
+    function insertChar(char) {
+        if (!activeInput) return;
+        const start = activeInput.selectionStart ?? activeInput.value.length;
+        const end = activeInput.selectionEnd ?? activeInput.value.length;
+        const value = activeInput.value;
+        activeInput.value = value.slice(0, start) + char + value.slice(end);
+        activeInput.selectionStart = activeInput.selectionEnd = start + char.length;
+        activeInput.dispatchEvent(new Event('input', { bubbles: true }));
+        activeInput.focus();
+    }
+
+    function backspace() {
+        if (!activeInput) return;
+        const start = activeInput.selectionStart ?? activeInput.value.length;
+        const end = activeInput.selectionEnd ?? activeInput.value.length;
+        if (start === 0 && end === 0) return;
+        const value = activeInput.value;
+        const newStart = start === end ? start - 1 : start;
+        activeInput.value = value.slice(0, newStart) + value.slice(end);
+        activeInput.selectionStart = activeInput.selectionEnd = Math.max(newStart, 0);
+        activeInput.dispatchEvent(new Event('input', { bubbles: true }));
+        activeInput.focus();
+    }
+
+    function clearAll() {
+        if (!activeInput) return;
+        activeInput.value = '';
+        activeInput.dispatchEvent(new Event('input', { bubbles: true }));
+        activeInput.focus();
+    }
+
+    function renderKeyboard() {
+        keysContainer.innerHTML = '';
+        keys.forEach(row => {
+            const rowEl = document.createElement('div');
+            rowEl.className = 'osk-row';
+            row.forEach(key => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'osk-key';
+                btn.textContent = key;
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    insertChar(key);
+                });
+                rowEl.appendChild(btn);
+            });
+            keysContainer.appendChild(rowEl);
+        });
+
+        const controlRow = document.createElement('div');
+        controlRow.className = 'osk-row';
+        controlRow.style.gridTemplateColumns = 'repeat(10, minmax(0, 1fr))';
+
+        const backBtn = document.createElement('button');
+        backBtn.type = 'button';
+        backBtn.className = 'osk-key wide';
+        backBtn.textContent = 'Backspace';
+        backBtn.addEventListener('click', (e) => { e.preventDefault(); backspace(); });
+
+        const spaceBtn = document.createElement('button');
+        spaceBtn.type = 'button';
+        spaceBtn.className = 'osk-key wider';
+        spaceBtn.textContent = 'Space';
+        spaceBtn.addEventListener('click', (e) => { e.preventDefault(); insertChar(' '); });
+
+        const clearBtn = document.createElement('button');
+        clearBtn.type = 'button';
+        clearBtn.className = 'osk-key wide';
+        clearBtn.textContent = 'Clear';
+        clearBtn.addEventListener('click', (e) => { e.preventDefault(); clearAll(); });
+
+        controlRow.appendChild(backBtn);
+        controlRow.appendChild(spaceBtn);
+        controlRow.appendChild(clearBtn);
+        keysContainer.appendChild(controlRow);
+    }
+
+    renderKeyboard();
+
+    document.addEventListener('focusin', (e) => {
+        const target = e.target;
+        if (target && target.classList && target.classList.contains('osk-input')) {
+            showKeyboard(target);
+        }
+    });
+
+    closeBtn.addEventListener('click', hideKeyboard);
+});

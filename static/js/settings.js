@@ -102,6 +102,47 @@ function closeUpdateModal() {
     }
 }
 
+// System name setting
+function loadSystemName() {
+    const input = document.getElementById('systemNameInput');
+    if (!input) return;
+    fetch('/api/system-name')
+        .then(res => res.json())
+        .then(data => {
+            if (data.system_name) {
+                input.value = data.system_name;
+            }
+        })
+        .catch(() => {});
+}
+
+function saveSystemName() {
+    const input = document.getElementById('systemNameInput');
+    if (!input) return;
+    const name = input.value.trim();
+    if (!name) {
+        alert('Please enter a system name');
+        return;
+    }
+    fetch('/api/system-name', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ system_name: name })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            alert(`System name updated to "${data.system_name}"`);
+            // Update header label immediately if present
+            const headerKicker = document.querySelector('.header-kicker');
+            if (headerKicker) headerKicker.textContent = data.system_name;
+        } else {
+            alert(data.error || 'Failed to update system name');
+        }
+    })
+    .catch(() => alert('Failed to update system name'));
+}
+
 // UPDATED WiFi Functions - Enhanced with NetworkManager support
 
 // Open WiFi Config Modal with NetworkManager status check
@@ -421,7 +462,7 @@ function connectToNetwork(ssid, requiresPassword) {
                             <div class="mb-3">
                                 <label for="wifi-password" class="form-label">Network Password</label>
                                 <div class="input-group">
-                                    <input type="password" class="form-control" id="wifi-password" required 
+                                    <input type="password" class="form-control osk-input" id="wifi-password" required 
                                            placeholder="Enter network password" autocomplete="new-password">
                                     <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility()" title="Show/Hide Password">
                                         <i class="bi bi-eye" id="password-toggle-icon"></i>
@@ -837,6 +878,11 @@ function resetNetworkSettings() {
 
 // Enhanced initialization when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
+    loadSystemName();
+    const saveBtn = document.getElementById('saveSystemNameBtn');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', saveSystemName);
+    }
     // Initialize all modals
     document.querySelectorAll('.modal').forEach(modalElement => {
         new bootstrap.Modal(modalElement);
