@@ -6,12 +6,54 @@ let progressInterval = null;
 let progressStartTime = 0;
 let progressPhase = -1;
 const commentaryPhases = [
-    'Warming up the pumps...',
-    'Mixing the base...',
-    'Balancing flavors...',
-    'Finishing the pour...',
-    'Almost ready...'
+    [
+        'Warming up the pumps...',
+        'Priming the flow...',
+        'Engaging beverage thrusters...',
+        'Kickstarting the mix...',
+        'Letting the machines do their thing...'
+    ],
+    [
+        'Mixing the base...',
+        'Laying down the foundation...',
+        'Summoning the main pour...',
+        'Stirring up something dangerous...',
+        'Dialing in the good stuff...'
+    ],
+    [
+        'Balancing flavors...',
+        'Adding a little chaos...',
+        'Fine-tuning the brew...',
+        'Leveling up the vibe...',
+        'Adjusting the flavor matrix...'
+    ],
+    [
+        'Finishing the pour...',
+        'Pouring with purpose...',
+        'Closing out the mix...',
+        'Final calibration...',
+        'Last pass, no mercy...'
+    ],
+    [
+        'Almost ready...',
+        'Final moments...',
+        'Just about there...',
+        'Brace yourself...',
+        'The legend is about to be served...'
+    ]
 ];
+
+const commentarySubtitles = [
+    'Boys club special in progress.',
+    'Crafting chaos, one pour at a time.',
+    'Respect the pour.',
+    'Grip the cup. Greatness incoming.',
+    'This machine does not miss.'
+];
+
+function pickRandom(list) {
+    return list[Math.floor(Math.random() * list.length)];
+}
 
 // Initialize the page
 document.addEventListener('DOMContentLoaded', () => {
@@ -71,7 +113,10 @@ function prepareMakeDrink(button) {
     // Get drink details
     currentDrinkId = button.dataset.drinkId;
     currentDrinkName = button.dataset.drinkName;
-    currentDrinkTime = parseInt(button.dataset.totalTime);
+    currentDrinkTime = parseFloat(button.dataset.totalTime);
+    if (!Number.isFinite(currentDrinkTime) || currentDrinkTime <= 0) {
+        currentDrinkTime = 8;
+    }
     
     // Update confirmation modal message
     const confirmMessage = document.getElementById('confirm-message');
@@ -126,6 +171,9 @@ function makeDrink() {
     })
     .then(data => {
         if (data.success) {
+            if (data.total_time && Number.isFinite(data.total_time)) {
+                currentDrinkTime = Math.max(3, data.total_time);
+            }
             // Let the progress bar continue until completion
             console.log('Making drink:', data.message);
         } else {
@@ -163,7 +211,8 @@ function startProgressTracking() {
 // Update progress bar
 function updateProgress() {
     const elapsedTime = (Date.now() - progressStartTime) / 1000; // in seconds
-    const percentComplete = Math.min((elapsedTime / currentDrinkTime) * 100, 100);
+    const safeTotal = Math.max(3, currentDrinkTime);
+    const percentComplete = Math.min((elapsedTime / safeTotal) * 100, 100);
     
     // Update progress bar
     const progressBar = document.getElementById('progress-bar');
@@ -182,15 +231,18 @@ function updateProgress() {
                           percentComplete < 90 ? 3 : 4;
         if (nextPhase !== progressPhase) {
             progressPhase = nextPhase;
-            statusMessage.textContent = commentaryPhases[progressPhase];
-            if (statusSubtitle) statusSubtitle.textContent = currentDrinkName;
+            statusMessage.textContent = pickRandom(commentaryPhases[progressPhase]);
+            if (statusSubtitle) {
+                statusSubtitle.textContent = `${currentDrinkName} • ${pickRandom(commentarySubtitles)}`;
+            }
         }
     }
     
     // If complete, stop tracking and show completion
-    if (percentComplete >= 100) {
+    if (percentComplete >= 100 && elapsedTime >= safeTotal) {
         stopProgressTracking();
-        drinkComplete();
+        // Small buffer so it never feels like it cuts off early
+        setTimeout(() => drinkComplete(), 800);
     }
 }
 

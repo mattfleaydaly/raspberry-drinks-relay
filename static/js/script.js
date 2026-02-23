@@ -103,6 +103,7 @@ function initializeNavButtons() {
         let holdStart = 0;
         const startHold = (e) => {
             e.preventDefault();
+            if (holdTimer) return;
             shutdownBtn.classList.add('holding');
             holdStart = Date.now();
             shutdownBtn.style.setProperty('--hold', '0%');
@@ -135,10 +136,7 @@ function initializeNavButtons() {
         shutdownBtn.addEventListener('pointerup', cancelHold);
         shutdownBtn.addEventListener('pointerleave', cancelHold);
         shutdownBtn.addEventListener('pointercancel', cancelHold);
-        shutdownBtn.addEventListener('touchstart', startHold, { passive: false });
-        shutdownBtn.addEventListener('touchend', cancelHold);
-        shutdownBtn.addEventListener('mousedown', startHold);
-        shutdownBtn.addEventListener('mouseup', cancelHold);
+        document.addEventListener('pointerup', cancelHold);
     }
 }
 
