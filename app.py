@@ -24,13 +24,15 @@ def inject_system_name():
     except Exception:
         return {"system_name": "Drinks Bro"}
 
-# Define relay pins
-relay_pins = {
-    "Relay 1": OutputDevice(26, active_high=False),
-    "Relay 2": OutputDevice(19, active_high=False),
-    "Relay 3": OutputDevice(16, active_high=False),
-    "Relay 4": OutputDevice(20, active_high=False),
-}
+# Default relay configuration
+DEFAULT_RELAYS = [
+    {"name": "Relay 1", "gpio": 26},
+    {"name": "Relay 2", "gpio": 19},
+    {"name": "Relay 3", "gpio": 16},
+    {"name": "Relay 4", "gpio": 20},
+]
+
+relay_pins = {}
 
 # Add test locking mechanism
 test_lock = Lock()
@@ -44,7 +46,6 @@ drink_progress = {
     "current_step": 0,
     "steps": 0,
     "completed_time": 0.0,
-    ,
     "step_started_at": None,
     "current_step_time": 0
 }
@@ -195,6 +196,40 @@ def get_config():
 def save_config(config):
     with open("config.json", "w") as f:
         json.dump(config, f, indent=4)
+
+def get_relay_config():
+    config = get_config()
+    relays = config.get("relays")
+    if not isinstance(relays, list) or not relays:
+        return DEFAULT_RELAYS
+    cleaned = []
+    for idx, relay in enumerate(relays, start=1):
+        name = relay.get("name") or f"Relay {idx}"
+        try:
+            gpio = int(relay.get("gpio"))
+        except Exception:
+            gpio = DEFAULT_RELAYS[min(idx - 1, len(DEFAULT_RELAYS) - 1)]["gpio"]
+        cleaned.append({"name": name, "gpio": gpio})
+    return cleaned
+
+def init_relay_pins():
+    global relay_pins
+    relay_pins = {}
+    for relay in get_relay_config():
+        relay_pins[relay["name"]] = OutputDevice(relay["gpio"], active_high=False)
+
+# Initialize relays on startup
+init_relay_pins()
+
+def relay_name_from_index(index):
+    relays = get_relay_config()
+    try:
+        idx = int(index) - 1
+    except Exception:
+        return f"Relay {index}"
+    if 0 <= idx < len(relays):
+        return relays[idx]["name"]
+    return f"Relay {index}"
 
 # Helper function to check NetworkManager status
 def check_networkmanager_status():
@@ -1364,6 +1399,28 @@ def settings():
     local_ip = get_local_ip()
     return render_template("settings.html", version=version, local_ip=local_ip)
 
+@app.route("/api/relays", methods=["GET", "POST"])
+def relays_config():
+    if request.method == "GET":
+        return jsonify({"success": True, "relays": get_relay_config()})
+    data = request.json or {}
+    relays = data.get("relays", [])
+    if not isinstance(relays, list) or len(relays) == 0:
+        return jsonify({"success": False, "error": "Relay list required"}), 400
+    cleaned = []
+    for idx, relay in enumerate(relays, start=1):
+        name = (relay.get("name") or f"Relay {idx}").strip()
+        try:
+            gpio = int(relay.get("gpio"))
+        except Exception:
+            return jsonify({"success": False, "error": f"Invalid GPIO for {name}"}), 400
+        cleaned.append({"name": name, "gpio": gpio})
+    config = get_config()
+    config["relays"] = cleaned
+    save_config(config)
+    init_relay_pins()
+    return jsonify({"success": True, "relays": cleaned})
+
 @app.route("/api/system-name", methods=["GET", "POST"])
 def system_name():
     if request.method == "GET":
@@ -1554,7 +1611,7 @@ def make_drink(drink_id):
                         drink_progress["current_step"] = idx
                         drink_progress["step_started_at"] = time.time()
                         drink_progress["current_step_time"] = max(0.0, float(step["time"]))
-                        relay_name = f"Relay {step['relay']}"
+                        relay_name = relay_name_from_index(step['relay'])
                         relay = relay_pins.get(relay_name)
                         if relay:
                             if step["action"] == "on":

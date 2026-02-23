@@ -276,6 +276,81 @@ function openWiFiConfig() {
     }, 100);
 }
 
+// Relay configuration
+function renderRelayConfig(relays) {
+    const container = document.getElementById('relayConfigList');
+    if (!container) return;
+    container.innerHTML = '';
+    relays.forEach((relay, idx) => {
+        const row = document.createElement('div');
+        row.className = 'panel';
+        row.style.padding = '12px';
+        row.innerHTML = `
+            <div class="grid grid-2">
+                <input class="form-control osk-input relay-name" type="text" value="${relay.name || `Relay ${idx + 1}`}" placeholder="Relay name">
+                <input class="form-control relay-gpio" type="number" value="${relay.gpio ?? ''}" placeholder="GPIO">
+            </div>
+            <div style="margin-top: 8px;">
+                <button class="btn btn-outline w-100 relay-remove">Remove</button>
+            </div>
+        `;
+        row.querySelector('.relay-remove').addEventListener('click', () => {
+            row.remove();
+        });
+        container.appendChild(row);
+    });
+}
+
+function loadRelayConfig() {
+    fetch('/api/relays')
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) renderRelayConfig(data.relays || []);
+        })
+        .catch(() => {});
+}
+
+function addRelayRow() {
+    const container = document.getElementById('relayConfigList');
+    if (!container) return;
+    const idx = container.children.length + 1;
+    renderRelayConfig([
+        ...Array.from(container.children).map(row => ({
+            name: row.querySelector('.relay-name')?.value || `Relay ${idx}`,
+            gpio: row.querySelector('.relay-gpio')?.value || ''
+        })),
+        { name: `Relay ${idx}`, gpio: '' }
+    ]);
+}
+
+function saveRelayConfig() {
+    const container = document.getElementById('relayConfigList');
+    if (!container) return;
+    const relays = Array.from(container.children).map((row, idx) => ({
+        name: row.querySelector('.relay-name')?.value?.trim() || `Relay ${idx + 1}`,
+        gpio: parseInt(row.querySelector('.relay-gpio')?.value || '0', 10)
+    }));
+    if (relays.some(r => !r.gpio || r.gpio <= 0)) {
+        window.appAlert('Please enter valid GPIO numbers for all relays.');
+        return;
+    }
+    fetch('/api/relays', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ relays })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            window.appAlert('Relay configuration saved.');
+            loadRelayConfig();
+        } else {
+            window.appAlert(data.error || 'Failed to save relays');
+        }
+    })
+    .catch(() => window.appAlert('Failed to save relays'));
+}
+
 // Close WiFi modal
 function closeWiFiModal() {
     const modal = document.getElementById('wifi-modal');
@@ -1037,6 +1112,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 .catch(() => window.appAlert('Rollback failed'));
         });
     }
+    loadRelayConfig();
+    const addRelayBtn = document.getElementById('addRelayBtn');
+    const saveRelayBtn = document.getElementById('saveRelayBtn');
+    const reloadRelayBtn = document.getElementById('reloadRelayBtn');
+    if (addRelayBtn) addRelayBtn.addEventListener('click', addRelayRow);
+    if (saveRelayBtn) saveRelayBtn.addEventListener('click', saveRelayConfig);
+    if (reloadRelayBtn) reloadRelayBtn.addEventListener('click', loadRelayConfig);
     // Initialize all modals
     document.querySelectorAll('.modal').forEach(modalElement => {
         new bootstrap.Modal(modalElement);

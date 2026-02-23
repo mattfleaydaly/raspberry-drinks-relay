@@ -49,6 +49,23 @@
         </section>
 
         <section class="panel">
+            <div class="panel-title">Relay Setup</div>
+            <div id="relayConfigList" class="grid grid-2"></div>
+            <div class="grid grid-3" style="margin-top: 12px;">
+                <button class="btn btn-outline w-100" id="addRelayBtn">
+                    <i class="bi bi-plus-circle"></i> Add Relay
+                </button>
+                <button class="btn btn-primary w-100" id="saveRelayBtn">
+                    <i class="bi bi-save"></i> Save Relays
+                </button>
+                <button class="btn btn-outline w-100" id="reloadRelayBtn">
+                    <i class="bi bi-arrow-repeat"></i> Reload
+                </button>
+            </div>
+            <p class="section-note">Assign relay names and GPIO pins. Changes apply immediately.</p>
+        </section>
+
+        <section class="panel">
             <div class="panel-title">Actions</div>
             <div class="grid grid-4">
                 <button id="check-updates-btn" class="btn btn-primary w-100" onclick="checkForUpdates()">

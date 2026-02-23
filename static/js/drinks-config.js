@@ -3,6 +3,7 @@
 // All drinks data 
 let drinksData = [];
 let currentStepIndex = -1;
+let relayOptions = [];
 let availableIcons = [
     'bi-cup', 'bi-cup-hot', 'bi-cup-straw', 'bi-cup-fill',
     'bi-droplet', 'bi-droplet-fill', 'bi-water', 'bi-magic',
@@ -29,6 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     populateIconGrid();
     setupModalScrolling();
     loadPhotoOptions();
+    loadRelayOptions();
 });
 
 // Initialize Bootstrap modals
@@ -473,6 +475,17 @@ function updateIconPreview(iconClass) {
     }
 }
 
+function loadRelayOptions() {
+    fetch('/api/relays')
+        .then(res => res.json())
+        .then(data => {
+            if (data.success && Array.isArray(data.relays)) {
+                relayOptions = data.relays;
+            }
+        })
+        .catch(() => {});
+}
+
 // Add a relay step to the form
 function addRelayStep(relay = 1, time = 5, action = 'on') {
     const relaySteps = document.getElementById('relaySteps');
@@ -484,6 +497,15 @@ function addRelayStep(relay = 1, time = 5, action = 'on') {
     stepElement.className = 'relay-step';
     stepElement.dataset.index = index;
     
+    const relaySelectOptions = relayOptions.length
+        ? relayOptions.map((r, i) => `<option value="${i + 1}" ${relay === i + 1 ? 'selected' : ''}>${r.name}</option>`).join('')
+        : `
+            <option value="1" ${relay === 1 ? 'selected' : ''}>Relay 1</option>
+            <option value="2" ${relay === 2 ? 'selected' : ''}>Relay 2</option>
+            <option value="3" ${relay === 3 ? 'selected' : ''}>Relay 3</option>
+            <option value="4" ${relay === 4 ? 'selected' : ''}>Relay 4</option>
+        `;
+
     stepElement.innerHTML = `
         <div class="relay-step-header">
             <span>Step ${index + 1}</span>
@@ -495,10 +517,7 @@ function addRelayStep(relay = 1, time = 5, action = 'on') {
             <div class="col-5">
                 <label class="form-label">Relay</label>
                 <select class="form-select relay-select">
-                    <option value="1" ${relay === 1 ? 'selected' : ''}>Relay 1</option>
-                    <option value="2" ${relay === 2 ? 'selected' : ''}>Relay 2</option>
-                    <option value="3" ${relay === 3 ? 'selected' : ''}>Relay 3</option>
-                    <option value="4" ${relay === 4 ? 'selected' : ''}>Relay 4</option>
+                    ${relaySelectOptions}
                 </select>
             </div>
             <div class="col-4">
