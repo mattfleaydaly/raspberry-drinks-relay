@@ -1652,13 +1652,8 @@ def get_drink_progress():
     if not drink_progress["active"]:
         return jsonify({"active": False})
     elapsed = time.time() - (drink_progress["started_at"] or time.time())
-    total = max(1, drink_progress.get("expected_total") or drink_progress["total_time"])
-    step_time = max(0.1, drink_progress.get("current_step_time") or 0.1)
-    step_elapsed = time.time() - (drink_progress.get("step_started_at") or time.time())
-    step_progress = min(step_time, max(0.0, step_elapsed))
-    completed = drink_progress.get("completed_time") or 0.0
-    total = max(0.1, drink_progress.get("total_time") or 0.1)
-    percent = min(100, ((completed + step_progress) / total) * 100)
+    total = max(0.1, drink_progress.get("expected_total") or drink_progress.get("total_time") or 0.1)
+    percent = min(99, (elapsed / total) * 100)
     return jsonify({
         "active": True,
         "drink_name": drink_progress["drink_name"],

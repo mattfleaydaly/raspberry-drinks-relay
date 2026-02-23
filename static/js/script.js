@@ -293,6 +293,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeBtn = osk.querySelector('.osk-close');
     const preview = osk.querySelector('#oskPreview');
     let activeInput = null;
+    let previewTimer = null;
     let isShift = false;
     let isCaps = false;
 
@@ -301,12 +302,20 @@ document.addEventListener('DOMContentLoaded', () => {
         osk.classList.remove('hidden');
         osk.setAttribute('aria-hidden', 'false');
         if (preview) preview.textContent = activeInput.value || '';
+        if (previewTimer) clearInterval(previewTimer);
+        previewTimer = setInterval(() => {
+            if (activeInput && preview) {
+                preview.textContent = activeInput.value || '';
+            }
+        }, 200);
     }
 
     function hideKeyboard() {
         activeInput = null;
         osk.classList.add('hidden');
         osk.setAttribute('aria-hidden', 'true');
+        if (previewTimer) clearInterval(previewTimer);
+        previewTimer = null;
     }
 
     function applyCase(char) {
