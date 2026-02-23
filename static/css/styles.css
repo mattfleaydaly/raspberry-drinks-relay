@@ -380,6 +380,31 @@ input, textarea, select {
 .modal-lg { max-width: 1000px; }
 .modal-xl { max-width: 1150px; }
 
+.modal-dialog {
+    margin: 0.5rem auto;
+}
+
+.modal-content {
+    max-height: 90vh;
+}
+
+.modal-body {
+    max-height: calc(90vh - 140px);
+    overflow-y: auto;
+}
+
+@media (max-height: 450px) {
+    .modal-content {
+        max-height: 82vh;
+    }
+    .modal-body {
+        max-height: calc(82vh - 120px);
+    }
+    .modal-footer {
+        padding-bottom: 8px;
+    }
+}
+
 .modal-header {
     background: linear-gradient(135deg, rgba(57, 182, 255, 0.15), rgba(17, 24, 39, 0.9));
 }
