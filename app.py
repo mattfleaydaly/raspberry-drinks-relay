@@ -40,6 +40,7 @@ drink_progress = {
     "drink_name": None,
     "started_at": None,
     "total_time": 0,
+    "expected_total": 0,
     "current_step": 0,
     "steps": 0
 }
@@ -1533,6 +1534,7 @@ def make_drink(drink_id):
                     drink_progress["drink_name"] = drink["name"]
                     drink_progress["started_at"] = time.time()
                     drink_progress["total_time"] = sum(step["time"] for step in drink["steps"])
+                    drink_progress["expected_total"] = drink_progress["total_time"] + 0.5 + (0.2 * len(drink["steps"]))
                     drink_progress["current_step"] = 0
                     drink_progress["steps"] = len(drink["steps"])
                     
@@ -1582,7 +1584,7 @@ def get_drink_progress():
     if not drink_progress["active"]:
         return jsonify({"active": False})
     elapsed = time.time() - (drink_progress["started_at"] or time.time())
-    total = max(1, drink_progress["total_time"])
+    total = max(1, drink_progress.get("expected_total") or drink_progress["total_time"])
     percent = min(100, (elapsed / total) * 100)
     return jsonify({
         "active": True,

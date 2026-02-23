@@ -6,6 +6,9 @@ let progressInterval = null;
 let progressStartTime = 0;
 let progressPhase = -1;
 let serverPoll = null;
+let serverActive = false;
+let lastCommentaryAt = 0;
+const commentaryCooldownMs = 2200;
 const commentaryPhases = [
     [
         'Warming up the pumps...',
@@ -286,11 +289,20 @@ function stopProgressTracking() {
 
 function startServerProgressPolling() {
     if (serverPoll) clearInterval(serverPoll);
+    serverActive = true;
     serverPoll = setInterval(() => {
         fetch('/api/drink-progress')
             .then(res => res.json())
             .then(data => {
-                if (!data.active) return;
+                if (!data.active) {
+                    if (serverActive) {
+                        serverActive = false;
+                        stopServerProgressPolling();
+                        stopProgressTracking();
+                        setTimeout(() => drinkComplete(), 800);
+                    }
+                    return;
+                }
                 const progressBar = document.getElementById('progress-bar');
                 if (progressBar) {
                     progressBar.style.width = `${data.percent}%`;
@@ -298,17 +310,16 @@ function startServerProgressPolling() {
                 }
                 const statusMessage = document.getElementById('status-message');
                 const statusSubtitle = document.getElementById('status-subtitle');
-                if (statusMessage) {
-                    statusMessage.textContent = pickRandom(commentaryPhases[Math.min(4, Math.floor((data.percent / 100) * 5))]);
+                const now = Date.now();
+                if (statusMessage && now - lastCommentaryAt > commentaryCooldownMs) {
+                    const phaseIndex = Math.min(4, Math.floor((data.percent / 100) * 5));
+                    statusMessage.textContent = pickRandom(commentaryPhases[phaseIndex], `phase-${phaseIndex}`);
+                    lastCommentaryAt = now;
                 }
                 if (statusSubtitle && data.drink_name) {
                     statusSubtitle.textContent = `${data.drink_name} • Step ${data.current_step}/${data.steps}`;
                 }
-                if (data.percent >= 100 && data.elapsed >= data.total_time) {
-                    stopServerProgressPolling();
-                    stopProgressTracking();
-                    setTimeout(() => drinkComplete(), 800);
-                }
+                serverActive = true;
             })
             .catch(() => {});
     }, 500);
@@ -319,6 +330,7 @@ function stopServerProgressPolling() {
         clearInterval(serverPoll);
         serverPoll = null;
     }
+    serverActive = false;
 }
 
 // Handle drink completion
