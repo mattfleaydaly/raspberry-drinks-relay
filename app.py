@@ -42,7 +42,8 @@ drink_progress = {
     "total_time": 0,
     "expected_total": 0,
     "current_step": 0,
-    "steps": 0
+    "steps": 0,
+    "completed_time": 0.0,
     ,
     "step_started_at": None,
     "current_step_time": 0
@@ -1542,6 +1543,7 @@ def make_drink(drink_id):
                     drink_progress["steps"] = len(drink["steps"])
                     drink_progress["step_started_at"] = time.time()
                     drink_progress["current_step_time"] = 0
+                    drink_progress["completed_time"] = 0.0
                     
                     # Reset all relays to OFF first
                     initialize_relay_states()
@@ -1566,7 +1568,9 @@ def make_drink(drink_id):
                             save_relay_states(states)
                             
                             # Wait for specified time
-                            time.sleep(step["time"])
+                        time.sleep(step["time"])
+                        # Track completed time for accurate progress
+                        drink_progress["completed_time"] += max(0.0, float(step["time"]))
                     
                     # Turn all relays off at the end
                     initialize_relay_states()
@@ -1594,10 +1598,10 @@ def get_drink_progress():
     total = max(1, drink_progress.get("expected_total") or drink_progress["total_time"])
     step_time = max(0.1, drink_progress.get("current_step_time") or 0.1)
     step_elapsed = time.time() - (drink_progress.get("step_started_at") or time.time())
-    step_progress = min(1.0, step_elapsed / step_time)
-    steps = max(1, drink_progress.get("steps") or 1)
-    current_step = min(steps, drink_progress.get("current_step") or 1)
-    percent = min(100, ((current_step - 1 + step_progress) / steps) * 100)
+    step_progress = min(step_time, max(0.0, step_elapsed))
+    completed = drink_progress.get("completed_time") or 0.0
+    total = max(0.1, drink_progress.get("total_time") or 0.1)
+    percent = min(100, ((completed + step_progress) / total) * 100)
     return jsonify({
         "active": True,
         "drink_name": drink_progress["drink_name"],
