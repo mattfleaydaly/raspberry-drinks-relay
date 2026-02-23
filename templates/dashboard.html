@@ -3,61 +3,52 @@
 {% block header %}System Dashboard{% endblock %}
 {% block content %}
 <div class="container-fluid">
-    <!-- Primary action - Make Drinks -->
-    <div class="row">
-        <div class="col-12">
+    <div class="page">
+        <section class="panel hero-panel">
+            <div>
+                <h2 class="hero-title">Ready to Pour</h2>
+                <p class="hero-sub">Touch to start a mix, tune recipes, or run a quick test.</p>
+            </div>
             <button class="btn btn-featured w-100" onclick="location.href='/make-drinks'">
-                <i class="bi bi-cup-hot me-2"></i>Make Drinks
+                <i class="bi bi-cup-hot"></i>Make Drinks
             </button>
-        </div>
-    </div>
-    
-    <!-- Secondary actions - organized in groups -->
-    <div class="row">
-        <!-- Configuration Group -->
-        <div class="col-12 mb-1">
-            <small class="text-muted">Configuration</small>
-        </div>
-        <div class="col-6">
-            <button class="btn btn-info w-100" onclick="location.href='/drinks-config'">
-                <i class="bi bi-cup-straw"></i>Drinks
-            </button>
-        </div>
-        <div class="col-6">
-            <button class="btn btn-secondary w-100" onclick="location.href='/settings'">
-                <i class="bi bi-gear"></i>Settings
-            </button>
-        </div>
-        
-        <!-- Maintenance Group -->
-        <div class="col-12 mb-1 mt-2">
-            <small class="text-muted">Maintenance</small>
-        </div>
-        <div class="col-6">
-            <button class="btn btn-warning w-100" onclick="location.href='/test-mode'">
-                <i class="bi bi-tools"></i>Test Mode
-            </button>
-        </div>
-        <div class="col-6">
-            <button class="btn btn-danger w-100" onclick="location.href='/maintenance'">
-                <i class="bi bi-wrench"></i>Service
-            </button>
-        </div>
-        
-        <!-- System Group -->
-        <div class="col-12 mb-1 mt-2">
-            <small class="text-muted">System</small>
-        </div>
-        <div class="col-6">
-            <button class="btn btn-primary w-100" onclick="location.href='/log'">
-                <i class="bi bi-list-columns"></i>System Log
-            </button>
-        </div>
-        <div class="col-6">
-            <button class="btn btn-success w-100" onclick="location.href='/status'">
-                <i class="bi bi-activity"></i>Status
-            </button>
-        </div>
+        </section>
+
+        <section class="panel-grid">
+            <div class="panel">
+                <div class="panel-title">Configuration</div>
+                <div class="grid grid-2">
+                    <button class="btn btn-info w-100" onclick="location.href='/drinks-config'">
+                        <i class="bi bi-cup-straw"></i>Drinks
+                    </button>
+                    <button class="btn btn-secondary w-100" onclick="location.href='/settings'">
+                        <i class="bi bi-gear"></i>Settings
+                    </button>
+                </div>
+            </div>
+            <div class="panel">
+                <div class="panel-title">Maintenance</div>
+                <div class="grid grid-2">
+                    <button class="btn btn-warning w-100" onclick="location.href='/test-mode'">
+                        <i class="bi bi-tools"></i>Test Mode
+                    </button>
+                    <button class="btn btn-danger w-100" onclick="location.href='/maintenance'">
+                        <i class="bi bi-wrench"></i>Service
+                    </button>
+                </div>
+            </div>
+            <div class="panel">
+                <div class="panel-title">System</div>
+                <div class="grid grid-2">
+                    <button class="btn btn-primary w-100" onclick="location.href='/log'">
+                        <i class="bi bi-list-columns"></i>System Log
+                    </button>
+                    <button class="btn btn-success w-100" onclick="location.href='/status'">
+                        <i class="bi bi-activity"></i>Status
+                    </button>
+                </div>
+            </div>
+        </section>
     </div>
 </div>
 {% endblock %}

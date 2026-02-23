@@ -17,7 +17,10 @@
 <body>
     <!-- Header -->
     <header class="header">
-        <h1>{% block header %}System Dashboard{% endblock %}</h1>
+        <div class="header-title">
+            <div class="header-kicker">Raspberry Drinks</div>
+            <h1>{% block header %}System Dashboard{% endblock %}</h1>
+        </div>
         <div class="nav-buttons">
             {% if request.path != '/' %}
             <button class="btn nav-btn" id="backBtn" title="Go Back" aria-label="Go Back">

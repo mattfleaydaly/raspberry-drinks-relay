@@ -1232,4 +1232,5 @@ def make_drink(drink_id):
 
 if __name__ == "__main__":
     initialize_relay_states()  # Reset states on startup
-    app.run(host="0.0.0.0", port=5000)
+    # Explicitly disable debug/reloader so systemd doesn't think the service exited.
+    app.run(host="0.0.0.0", port=5000, debug=False, use_reloader=False)

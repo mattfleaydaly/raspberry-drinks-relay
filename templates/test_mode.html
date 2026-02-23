@@ -3,56 +3,47 @@
 {% block header %}Test Mode{% endblock %}
 {% block content %}
 <div class="container-fluid">
-    <!-- Warning Banner -->
-    <div class="alert alert-warning mb-3">
-        <i class="bi bi-exclamation-triangle me-1"></i> Test Mode: Manual Relay Control
-    </div>
-    
-    <div class="row g-1">
-        <!-- Relay Controls -->
-        <div class="col-12 mb-1">
-            <small class="text-muted">Relay Controls</small>
+    <div class="page">
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle me-1"></i> Test Mode: Manual Relay Control
         </div>
-        
-        {% for relay_name, state in relays.items() %}
-        <div class="col-4">
-            <button id="{{ relay_name }}" 
-                    class="btn btn-relay {{ 'btn-success' if state else 'btn-danger' }} w-100" 
-                    onclick="toggleRelay('{{ relay_name }}')">
-                <i class="bi bi-{{ 'toggle-on' if state else 'toggle-off' }}"></i>{{ relay_name }}
-            </button>
-        </div>
-        {% endfor %}
-        
-        <!-- Test Actions -->
-        <div class="col-12 mb-1 mt-3">
-            <small class="text-muted">Test Functions</small>
-        </div>
-        
-        <div class="col-4">
-            <button id="timeTestBtn" class="btn btn-primary w-100">
-                <i class="bi bi-clock"></i>Time Test
-            </button>
-        </div>
-        <div class="col-4">
-            <button id="selfTestBtn" class="btn btn-info w-100">
-                <i class="bi bi-gear"></i>Self Test
-            </button>
-        </div>
-        <div class="col-4">
-            <button id="toggleAllButton" class="btn btn-warning w-100">
-                <i class="bi bi-toggles"></i>All ON
-            </button>
-        </div>
-        
-        <!-- Log -->
-        <div class="col-12 mt-3">
+
+        <section class="panel">
+            <div class="panel-title">Relay Controls</div>
+            <div class="relay-grid">
+                {% for relay_name, state in relays.items() %}
+                <button id="{{ relay_name }}" 
+                        class="btn btn-relay {{ 'btn-success' if state else 'btn-danger' }} w-100" 
+                        onclick="toggleRelay('{{ relay_name }}')">
+                    <i class="bi bi-{{ 'toggle-on' if state else 'toggle-off' }}"></i>{{ relay_name }}
+                </button>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-title">Test Functions</div>
+            <div class="grid grid-3">
+                <button id="timeTestBtn" class="btn btn-primary w-100">
+                    <i class="bi bi-clock"></i>Time Test
+                </button>
+                <button id="selfTestBtn" class="btn btn-info w-100">
+                    <i class="bi bi-gear"></i>Self Test
+                </button>
+                <button id="toggleAllButton" class="btn btn-warning w-100">
+                    <i class="bi bi-toggles"></i>All ON
+                </button>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-title">Log</div>
             <div class="log-container" style="height: 150px;">
                 <div id="log-content">
                     System test mode initialized...
                 </div>
             </div>
-        </div>
+        </section>
     </div>
 </div>
 

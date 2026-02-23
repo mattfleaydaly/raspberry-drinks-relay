@@ -3,8 +3,9 @@
 {% block header %}Make Drinks{% endblock %}
 {% block content %}
 <div class="container-fluid">
+    <div class="page">
     <!-- Status Banner -->
-    <div id="status-banner" class="alert alert-primary mb-3 d-none">
+    <div id="status-banner" class="alert alert-primary d-none">
         <div class="d-flex align-items-center">
             <div class="spinner-border spinner-border-sm me-2" role="status"></div>
             <span id="status-message">Preparing drink...</span>
@@ -15,7 +16,7 @@
     </div>
     
     <!-- No drinks message -->
-    <div id="no-drinks-message" class="text-center p-5 {% if drinks %}d-none{% endif %}">
+    <div id="no-drinks-message" class="panel text-center {% if drinks %}d-none{% endif %}">
         <i class="bi bi-cup-straw fs-1 mb-3 d-block text-muted"></i>
         <h5 class="text-muted">No drinks configured</h5>
         <p class="text-muted">Add drinks in the Drinks Configuration page</p>
@@ -25,26 +26,25 @@
     </div>
     
     <!-- Drinks Grid -->
-    <div id="drinks-grid" class="row g-3 {% if not drinks %}d-none{% endif %}">
+    <div id="drinks-grid" class="drink-grid {% if not drinks %}d-none{% endif %}">
         {% for drink in drinks %}
-        <div class="col-6 col-md-4 col-xl-3">
-            <div class="card bg-dark text-white h-100">
-                <div class="card-body text-center">
-                    <i class="{{ drink.icon }} fs-1 mb-2"></i>
-                    <h5 class="card-title">{{ drink.name }}</h5>
-                    <small class="text-muted">{{ drink.steps|length }} steps</small>
-                </div>
-                <div class="card-footer p-2">
-                    <button class="btn btn-primary w-100 make-drink-btn" 
-                            data-drink-id="{{ loop.index0 }}"
-                            data-drink-name="{{ drink.name }}"
-                            data-total-time="{{ drink.steps|map(attribute='time')|sum }}">
-                        <i class="bi bi-cup-hot"></i> Make
-                    </button>
-                </div>
+        <div class="drink-card">
+            <div class="card-body text-center">
+                <i class="{{ drink.icon }} drink-icon"></i>
+                <h5 class="card-title">{{ drink.name }}</h5>
+                <div class="drink-meta">{{ drink.steps|length }} steps</div>
+            </div>
+            <div class="card-footer">
+                <button class="btn btn-primary w-100 make-drink-btn" 
+                        data-drink-id="{{ loop.index0 }}"
+                        data-drink-name="{{ drink.name }}"
+                        data-total-time="{{ drink.steps|map(attribute='time')|sum }}">
+                    <i class="bi bi-cup-hot"></i> Make
+                </button>
             </div>
         </div>
         {% endfor %}
+    </div>
     </div>
 </div>
 
@@ -111,59 +111,4 @@
 
 {% block scripts %}
 <script src="/static/js/make-drinks.js"></script>
-<style>
-/* Card hover effect */
-.card {
-    transition: transform 0.2s, box-shadow 0.2s;
-    border: 1px solid #444;
-}
-
-.card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
-}
-
-/* Icon styling */
-.card i.fs-1 {
-    color: rgba(255, 255, 255, 0.8);
-}
-
-/* Make button hover */
-.make-drink-btn {
-    transition: all 0.2s;
-}
-
-.make-drink-btn:hover {
-    filter: brightness(1.1);
-}
-
-/* Progress bar styling */
-.progress {
-    height: 8px;
-    background-color: rgba(0, 0, 0, 0.1);
-}
-
-/* Empty state styling */
-#no-drinks-message {
-    padding: 4rem 1rem;
-    margin: 1rem 0;
-    border-radius: 10px;
-    background-color: rgba(0, 0, 0, 0.1);
-}
-
-#no-drinks-message i {
-    opacity: 0.5;
-}
-
-/* Responsive font size adjustments */
-@media (max-width: 576px) {
-    .card-title {
-        font-size: 1rem;
-    }
-    
-    .card i.fs-1 {
-        font-size: 2rem !important;
-    }
-}
-</style>
 {% endblock %}
