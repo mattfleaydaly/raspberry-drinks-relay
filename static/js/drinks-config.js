@@ -268,7 +268,7 @@ function initEventListeners() {
         if (currentStepIndex >= 0) {
             const timeInput = document.querySelector(`#relaySteps .relay-step[data-index="${currentStepIndex}"] .time-display`);
             if (timeInput) {
-                timeInput.textContent = time;
+                timeInput.textContent = `${time} s`;
                 timeInput.dataset.time = time;
             }
         }
@@ -404,14 +404,14 @@ function addRelayStep(relay = 1, time = 5, action = 'on') {
     stepElement.innerHTML = `
         <div class="relay-step-header">
             <span>Step ${index + 1}</span>
-            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeStep(${index})">
+            <button type="button" class="btn btn-outline-danger" onclick="removeStep(${index})">
                 <i class="bi bi-trash"></i>
             </button>
         </div>
-        <div class="row g-2">
+        <div class="row g-3 align-items-end">
             <div class="col-5">
-                <label class="form-label small">Relay</label>
-                <select class="form-select form-select-sm relay-select">
+                <label class="form-label">Relay</label>
+                <select class="form-select relay-select">
                     <option value="1" ${relay === 1 ? 'selected' : ''}>Relay 1</option>
                     <option value="2" ${relay === 2 ? 'selected' : ''}>Relay 2</option>
                     <option value="3" ${relay === 3 ? 'selected' : ''}>Relay 3</option>
@@ -419,16 +419,15 @@ function addRelayStep(relay = 1, time = 5, action = 'on') {
                 </select>
             </div>
             <div class="col-4">
-                <label class="form-label small">Time (s)</label>
-                <div class="input-group input-group-sm">
-                    <span class="form-control time-display" data-time="${time}" 
-                          onclick="openTimeModal(${index})">${time}</span>
-                    <span class="input-group-text">s</span>
-                </div>
+                <label class="form-label">Time</label>
+                <button type="button" class="btn btn-outline w-100 time-display" data-time="${time}"
+                        onclick="openTimeModal(${index})">
+                    ${time} s
+                </button>
             </div>
             <div class="col-3">
-                <label class="form-label small">Action</label>
-                <select class="form-select form-select-sm action-select">
+                <label class="form-label">Action</label>
+                <select class="form-select action-select">
                     <option value="on" ${action === 'on' ? 'selected' : ''}>ON</option>
                     <option value="off" ${action === 'off' ? 'selected' : ''}>OFF</option>
                 </select>

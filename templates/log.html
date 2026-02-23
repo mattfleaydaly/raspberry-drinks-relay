@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}System Log{% endblock %}
+{% block header %}System Log{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="page">
+        <section class="panel">
+            <div class="panel-title">System Log</div>
+            <div class="section-note">This screen is reserved for future log streaming. For now, use the update log modal in Settings.</div>
+            <div class="grid grid-2" style="margin-top: 16px;">
+                <button class="btn btn-primary w-100" onclick="location.href='/settings'">
+                    <i class="bi bi-gear"></i> Open Settings
+                </button>
+                <button class="btn btn-outline w-100" onclick="history.back()">
+                    <i class="bi bi-arrow-left"></i> Go Back
+                </button>
+            </div>
+        </section>
+    </div>
+</div>
+{% endblock %}

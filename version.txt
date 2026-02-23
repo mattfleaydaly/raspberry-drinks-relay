@@ -1,3 +1,4 @@
+V2.4.0 - Full UI overhaul for 1280x400 + add status/log/maintenance pages + 404 recovery
 V2.3.1 - Photo library and USB fixes maybe? Pls try Mr G!
 V2.3.0 - Photo Library initial creation and testing... Mr G himself requested this feature
 V2.2.1 - Home page tweak for dash/make drinks

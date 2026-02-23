@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Not Found{% endblock %}
+{% block header %}Page Not Found{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="page">
+        <section class="panel" style="text-align: center;">
+            <div class="panel-title">404</div>
+            <h2 class="hero-title">We couldn't find that screen</h2>
+            <p class="section-note">No reboot needed. Just jump back to a working page.</p>
+            <div class="grid grid-2" style="margin-top: 16px;">
+                <button class="btn btn-outline w-100" onclick="history.back()">
+                    <i class="bi bi-arrow-left"></i> Go Back
+                </button>
+                <button class="btn btn-primary w-100" onclick="location.href='/'">
+                    <i class="bi bi-house-fill"></i> Home
+                </button>
+            </div>
+        </section>
+    </div>
+</div>
+{% endblock %}

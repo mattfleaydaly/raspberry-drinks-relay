@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Maintenance{% endblock %}
+{% block header %}Maintenance{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="page">
+        <section class="panel">
+            <div class="panel-title">Service Controls</div>
+            <div class="grid grid-4">
+                <button class="btn btn-warning w-100" onclick="location.href='/test-mode'">
+                    <i class="bi bi-tools"></i> Test Mode
+                </button>
+                <button class="btn btn-primary w-100" onclick="checkForUpdates()">
+                    <i class="bi bi-git"></i> Pull Updates
+                </button>
+                <button class="btn btn-primary w-100" onclick="performSystemUpdate()">
+                    <i class="bi bi-arrow-repeat"></i> System Update
+                </button>
+                <button class="btn btn-primary w-100" onclick="location.href='/settings'">
+                    <i class="bi bi-gear"></i> Settings
+                </button>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-title">Power</div>
+            <div class="grid grid-3">
+                <button class="btn btn-warning w-100" onclick="controlSystem('reboot')">
+                    <i class="bi bi-arrow-clockwise"></i> Reboot
+                </button>
+                <button class="btn btn-danger w-100" onclick="controlSystem('shutdown')">
+                    <i class="bi bi-power"></i> Shutdown
+                </button>
+                <button class="btn btn-outline w-100" onclick="history.back()">
+                    <i class="bi bi-arrow-left"></i> Go Back
+                </button>
+            </div>
+        </section>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/settings.js"></script>
+{% endblock %}

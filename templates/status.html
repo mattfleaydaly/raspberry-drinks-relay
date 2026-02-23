@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}Status{% endblock %}
+{% block header %}System Status{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="page">
+        <section class="panel">
+            <div class="panel-title">Overview</div>
+            <div class="grid grid-3">
+                <div class="status-pill">
+                    <span class="status-dot"></span>
+                    App Online
+                </div>
+                <div class="status-pill">
+                    <i class="bi bi-hdd-stack"></i>
+                    Version: {{ version }}
+                </div>
+                <div class="status-pill">
+                    <i class="bi bi-router"></i>
+                    Local IP: {{ local_ip }}
+                </div>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-title">Live Checks</div>
+            <div class="grid grid-2">
+                <div class="panel">
+                    <div class="panel-title">WiFi</div>
+                    <div id="wifiStatus" class="section-note">Checking WiFi status...</div>
+                    <div class="grid grid-2" style="margin-top: 12px;">
+                        <button class="btn btn-outline w-100" onclick="refreshWiFiStatus()">
+                            <i class="bi bi-arrow-repeat"></i>Refresh
+                        </button>
+                    <button class="btn btn-primary w-100" onclick="location.href='/settings'">
+                        <i class="bi bi-wifi"></i>Configure
+                    </button>
+                </div>
+            </div>
+                <div class="panel">
+                    <div class="panel-title">Test Activity</div>
+                    <div id="testStatus" class="section-note">Checking test state...</div>
+                    <div class="grid grid-2" style="margin-top: 12px;">
+                        <button class="btn btn-outline w-100" onclick="refreshTestStatus()">
+                            <i class="bi bi-arrow-repeat"></i>Refresh
+                        </button>
+                        <button class="btn btn-warning w-100" onclick="location.href='/test-mode'">
+                            <i class="bi bi-tools"></i>Test Mode
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-title">Quick Actions</div>
+            <div class="grid grid-4">
+                <button class="btn btn-primary w-100" onclick="checkForUpdates()">
+                    <i class="bi bi-git"></i> Pull Updates
+                </button>
+                <button class="btn btn-primary w-100" onclick="performSystemUpdate()">
+                    <i class="bi bi-arrow-repeat"></i> System Update
+                </button>
+                <button class="btn btn-warning w-100" onclick="controlSystem('reboot')">
+                    <i class="bi bi-arrow-clockwise"></i> Reboot
+                </button>
+                <button class="btn btn-danger w-100" onclick="controlSystem('shutdown')">
+                    <i class="bi bi-power"></i> Shutdown
+                </button>
+            </div>
+        </section>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/settings.js"></script>
+<script>
+    function refreshWiFiStatus() {
+        fetch('/wifi-status')
+            .then(res => res.json())
+            .then(data => {
+                const el = document.getElementById('wifiStatus');
+                if (data.connected) {
+                    el.textContent = `Connected to ${data.ssid} (${data.ip})`;
+                } else {
+                    el.textContent = 'Not connected';
+                }
+            })
+            .catch(() => {
+                document.getElementById('wifiStatus').textContent = 'Unable to read WiFi status';
+            });
+    }
+
+    function refreshTestStatus() {
+        fetch('/test-in-progress')
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('testStatus').textContent = data.testing
+                    ? 'Test in progress'
+                    : 'Idle';
+            })
+            .catch(() => {
+                document.getElementById('testStatus').textContent = 'Unable to read test status';
+            });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        refreshWiFiStatus();
+        refreshTestStatus();
+    });
+</script>
+{% endblock %}

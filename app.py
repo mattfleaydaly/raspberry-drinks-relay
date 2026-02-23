@@ -13,6 +13,14 @@ import shutil
 
 app = Flask(__name__)
 
+@app.context_processor
+def inject_system_name():
+    """Provide system_name to all templates."""
+    try:
+        return {"system_name": get_config().get("system_name", "Drinks Bro")}
+    except Exception:
+        return {"system_name": "Drinks Bro"}
+
 # Define relay pins
 relay_pins = {
     "Relay 1": OutputDevice(26, active_high=False),
@@ -585,7 +593,7 @@ def time_test():
 
 @app.route("/self-test")
 def self_test():
-    """Run random relay test for 10 seconds."""
+    """Run a deterministic relay self test (sequential on/off)."""
     global test_in_progress
     
     # Check if test is already running
@@ -600,26 +608,36 @@ def self_test():
             initialize_relay_states()
             time.sleep(0.5)  # Small delay after reset
             
-            start_time = time.time()
-            while time.time() - start_time < 10:
-                # Randomly select which relays to toggle
-                for relay_name, relay in relay_pins.items():
-                    if random.choice([True, False]):
-                        # Randomly toggle relay
-                        new_state = random.choice([True, False])
-                        if new_state:
-                            relay.on()
-                        else:
-                            relay.off()
-                        
-                        # Update states
-                        states = load_relay_states()
-                        states[relay_name] = new_state
-                        save_relay_states(states)
-                
-                # Random delay between 0.1 and 1 second
-                time.sleep(random.uniform(0.1, 1.0))
-            
+            # Run a clear on/off sequence for each relay
+            for relay_name, relay in relay_pins.items():
+                # Pulse on
+                relay.on()
+                states = load_relay_states()
+                states[relay_name] = True
+                save_relay_states(states)
+                time.sleep(0.6)
+
+                # Pulse off
+                relay.off()
+                states = load_relay_states()
+                states[relay_name] = False
+                save_relay_states(states)
+                time.sleep(0.3)
+
+                # Second pulse on
+                relay.on()
+                states = load_relay_states()
+                states[relay_name] = True
+                save_relay_states(states)
+                time.sleep(0.4)
+
+                # Final off before moving on
+                relay.off()
+                states = load_relay_states()
+                states[relay_name] = False
+                save_relay_states(states)
+                time.sleep(0.2)
+
             # Turn all relays off at the end
             initialize_relay_states()
             return jsonify({"status": "Self test completed successfully!"})
@@ -1052,6 +1070,23 @@ def about():
     config = get_config()
     return render_template("about.html", system_name=config["system_name"])
 
+@app.route("/status")
+def status():
+    config = get_config()
+    version = get_latest_version()
+    local_ip = get_local_ip()
+    return render_template("status.html", system_name=config["system_name"], version=version, local_ip=local_ip)
+
+@app.route("/log")
+def log():
+    config = get_config()
+    return render_template("log.html", system_name=config["system_name"])
+
+@app.route("/maintenance")
+def maintenance():
+    config = get_config()
+    return render_template("maintenance.html", system_name=config["system_name"])
+
 @app.route("/test-mode")
 def test_mode():
     relay_states = load_relay_states()
@@ -1132,6 +1167,10 @@ def make_drinks():
     config = get_config()
     drinks = load_drinks_config()
     return render_template("make-drinks.html", system_name=config["system_name"], drinks=drinks)
+
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template("404.html"), 404
 
 # ----------------- DRINKS API -----------------
 

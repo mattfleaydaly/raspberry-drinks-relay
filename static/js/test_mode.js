@@ -226,8 +226,8 @@ function selfTest() {
         button.classList.add('opacity-75');
     }
     
-    showModal('Self Test', 'Running self test (10 seconds)...'); // Show initial modal
-    logMessage('Starting self test...');
+    showModal('Self Test', 'Running relay self test (sequential on/off)...'); // Show initial modal
+    logMessage('Starting relay self test (sequential)...');
     
     fetch('/self-test')
         .then(response => {
